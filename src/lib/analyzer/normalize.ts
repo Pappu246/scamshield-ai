@@ -29,7 +29,7 @@ export function normalizeText(raw: string): string {
  * messages hit the same rules as Roman-script Hinglish ones.
  */
 const DEV_WORD_MAP: [RegExp, string][] = [
-  [/\brgistreshn|rajistreshn|registreshn\b/g, "registration"],
+  [/\brgistreshn|rjistreshn|rajistreshn|registreshn\b/g, "registration"],
   [/\bphees|phej|fees\b/g, "fee"],
   [/\bjmaa|jma|jamaa\b/g, "jama"],
   [/\bkeejie|kijiye|kejie\b/g, "kijiye"],

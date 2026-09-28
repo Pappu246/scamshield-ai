@@ -13,3 +13,10 @@ export {
   tokenize,
 } from "./classifier";
 export { DATASET_STATS } from "./dataset";
+
+import { MODEL_METRICS } from "./classifier";
+
+/** Convenience accessor used by UI components. */
+export function getModelMetrics() {
+  return MODEL_METRICS;
+}

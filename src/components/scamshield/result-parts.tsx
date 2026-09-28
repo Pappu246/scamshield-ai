@@ -9,7 +9,6 @@ import type {
   UrlAnalysisResult,
 } from "@/lib/analyzer/types";
 import { getModelMetrics } from "@/lib/analyzer/metrics";
-import { RiskBadge } from "./risk";
 
 const SEVERITY_CLASS: Record<Finding["severity"], string> = {
   critical: "text-risk-critical",

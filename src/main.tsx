@@ -13,6 +13,10 @@ import "./index.css";
 const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const Analyze = lazy(() => import("./pages/Analyze.tsx"));
+const Result = lazy(() => import("./pages/Result.tsx"));
+const History = lazy(() => import("./pages/History.tsx"));
+const About = lazy(() => import("./pages/About.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -122,7 +126,31 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/" element={<Landing />} />
               <Route
                 path="/auth"
-                element={<AuthPage redirectAfterAuth="/dashboard" />}
+                element={<AuthPage redirectAfterAuth="/analyze" />}
+              />
+              <Route
+                path="/analyze"
+                element={
+                  <RequireAuth>
+                    <Analyze />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/result/:id"
+                element={
+                  <RequireAuth>
+                    <Result />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/history"
+                element={
+                  <RequireAuth>
+                    <History />
+                  </RequireAuth>
+                }
               />
               <Route
                 path="/dashboard"
@@ -132,6 +160,7 @@ createRoot(document.getElementById("root")!).render(
                   </RequireAuth>
                 }
               />
+              <Route path="/about" element={<About />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

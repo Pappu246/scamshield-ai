@@ -168,10 +168,6 @@ export const analyze = mutation({
     }
 
     const now = Date.now();
-    const trimmed = text.trim();
-    const title =
-      trimmed.slice(0, 80).replace(/\s+/g, " ") +
-      (trimmed.length > 80 ? "…" : "");
 
     const analysisId = await ctx.db.insert("analyses", {
       userId,
