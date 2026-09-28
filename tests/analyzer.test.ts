@@ -13,7 +13,8 @@ import {
   ValidationError,
 } from "../src/lib/analyzer/index";
 import { MODEL_METRICS, predictText, tokenize } from "../src/lib/analyzer/classifier";
-import { levelForScore } from "../src/lib/analyzer/scoring";
+import { levelForScore, computeMlScore } from "../src/lib/analyzer/scoring";
+import { applyDevWordMap } from "../src/lib/analyzer/normalize";
 
 // ---------------------------------------------------------------------------
 // Normalizer
@@ -209,6 +210,12 @@ describe("classifier", () => {
   it("tokenizes Unicode safely", () => {
     expect(() => tokenize("🎉 नमस्ते hello ₹100")).not.toThrow();
   });
+
+  it("does not corrupt unrelated words via the vocabulary map", () => {
+    // "jeeter"/"jeep" contain scam-vocabulary substrings; the map is bounded
+    // per word and must leave them untouched.
+    expect(applyDevWordMap("the jeep jeeter bonus jit")).toBe("the jeep jeeter bonus jeet");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -299,5 +306,36 @@ describe("scoring levels", () => {
     expect(levelForScore(55)).toBe("HIGH RISK");
     expect(levelForScore(75)).toBe("CRITICAL RISK");
     expect(levelForScore(74)).toBe("HIGH RISK");
+  });
+
+  it("keeps ML raw/points consistent at low margin (abstention)", () => {
+    const base = 0.6 * 0.1 * 30; // 1.8
+    const low = computeMlScore({ scamProbability: 0.6, confidence: 0.1, modelVersion: "x", topScamTokens: [], topLegitTokens: [] });
+    expect(low.raw).toBeCloseTo(base, 5); // raw is NOT inflated by the reduction
+    expect(low.points).toBeCloseTo(base * 0.25, 5); // reduced to 25%
+    // Monotonicity: reducing the margin must never increase the contribution.
+    const high = computeMlScore({ scamProbability: 0.6, confidence: 0.9, modelVersion: "x", topScamTokens: [], topLegitTokens: [] });
+    expect(high.points).toBeGreaterThanOrEqual(low.points);
+  });
+
+  it("does not flag a merchant UPI request as payment solicitation", () => {
+    const ids = analyzeRules("Send your UPI id to receive the refund from the merchant").map((f) => f.id);
+    expect(ids).not.toContain("PAY-003");
+    expect(ids).not.toContain("PAY-004");
+  });
+
+  it("does not extract a phone number from inside a longer digit run", () => {
+    expect(extractPhones("your order 123456789012 shipped")).toHaveLength(0);
+  });
+
+  it("treats a single low-severity URL flag as structurally fine", () => {
+    const r = analyzeUrl("https://github.com/" + "a".repeat(120));
+    expect(r.flags.length).toBe(1);
+    expect(r.verdict).toBe("safe_structurally");
+  });
+
+  it("still escalates corroborated high-severity URL findings", () => {
+    const r = analyzeUrl("http://sbi-secure-login.top/kyc");
+    expect(r.verdict === "suspicious" || r.verdict === "dangerous").toBe(true);
   });
 });

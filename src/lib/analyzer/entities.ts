@@ -29,9 +29,11 @@ const IPV4_RE =
 const EMAIL_RE =
   /\b[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+\b/gi;
 
-/** E.164-ish international numbers, then Indian/10-digit patterns. */
+/** E.164-ish international numbers, then Indian/10-digit patterns.
+ * Lookarounds (not \b) prevent substring matches inside longer digit runs
+ * such as order/transaction ids. */
 const PHONE_RE =
-  /(?:\+\d{1,3}[\s-]?)?(?:\d[\s-]?){10}\b|\b(?:0|\+91)[\s-]?\d{10}\b|\b\d{10}\b/g;
+  /(?<!\d)(?:\+\d{1,3}[\s-]?)?(?:\d[\s-]?){10}(?!\d)|(?<!\d)(?:0|\+91)[\s-]?\d{10}(?!\d)/g;
 
 const UPI_RE = /\b[a-z0-9][a-z0-9._-]{1,40}@(?:upi|ybl|okhdfcbank|okicici|oksbi|okaxis|paytm|apl|ibl|axl)\b/gi;
 

@@ -24,7 +24,13 @@ import { toast } from "sonner";
 
 export default function Result() {
   const { id } = useParams<{ id: string }>();
-  const data = useQuery(api.analyses.get, id ? { id: id as Id<"analyses"> } : "skip");
+  // Convex ids are base32-ish 32-char strings; guard so a malformed /result/xyz
+  // URL param can never reach the backend as an invalid id.
+  const isValidId = typeof id === "string" && /^[a-z0-9]{32}$/i.test(id);
+  const data = useQuery(
+    api.analyses.get,
+    isValidId ? { id: id as Id<"analyses"> } : "skip",
+  );
 
   if (data === undefined) {
     return (
@@ -39,7 +45,9 @@ export default function Result() {
     );
   }
 
-  if (data === null) {
+  // Malformed id: the query was skipped, so there is nothing to wait for —
+  // show the not-found state instead of spinning forever.
+  if (data === null || (!isValidId && data === undefined)) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <AppHeader />

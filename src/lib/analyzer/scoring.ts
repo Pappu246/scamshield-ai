@@ -50,11 +50,13 @@ export function computeRuleScore(findings: Finding[]): { raw: number; points: nu
 
 export function computeMlScore(ml: MlPrediction): { raw: number; points: number; cap: number } {
   const cap = 30;
-  // Margin-weighted probability: an over-confident-looking 0.9 with tiny margin
-  // contributes less than a stable 0.9. Under ~0.2 margin the model abstains.
+  // Base contribution: probability weighted by decision margin.
+  const base = ml.scamProbability * ml.confidence * cap;
+  // Below ~0.2 margin the model is near its decision boundary — reduce its
+  // contribution to 25% (abstention). `raw` stays the un-reduced base so the
+  // displayed raw/points pair stays consistent and monotonic in the margin.
   const marginFactor = ml.confidence < 0.2 ? 0.25 : 1;
-  const raw = ml.scamProbability * ml.confidence * cap;
-  return { raw: raw / marginFactor, points: raw * marginFactor, cap };
+  return { raw: base, points: base * marginFactor, cap };
 }
 
 const URL_POINTS: Record<UrlAnalysisResult["verdict"], number> = {
@@ -84,11 +86,8 @@ export function computeEntityScore(entities: ExtractedEntity[]): { raw: number; 
 export function computeLegitimacyRelief(findings: Finding[], ml: MlPrediction): { raw: number; points: number; cap: number } {
   const cap = 18;
   let raw = 0;
-  // Explicit "no fee / no OTP" disclaimers are strong legitimacy evidence.
-  if (findings.some((f) => f.category === "credentials" && /never ask|do not share|no otp|no fees/i.test(f.explanation))) {
-    raw += 0; // placeholder — real relief comes from text-level checks below
-  }
   // Model leans legitimately with decent margin.
+  // (Text-level "no fee / no OTP" relief is a documented v2 addition.)
   if (ml.scamProbability < 0.25 && ml.confidence > 0.3) raw += 8;
   return { raw, points: raw, cap };
 }

@@ -280,11 +280,17 @@ const SEVERITY_POINTS: Record<Severity, number> = {
 };
 
 function computeVerdict(flags: UrlFindingItem[]): UrlVerdict {
-  let points = flags.reduce((sum, f) => sum + SEVERITY_POINTS[f.severity], 0);
+  const points = flags.reduce((sum, f) => sum + SEVERITY_POINTS[f.severity], 0);
+  const hasHighSeverity = flags.some((f) => f.severity === "high" || f.severity === "critical");
+  // Dangerous: heavy accumulation, or a high-severity finding corroborated by
+  // anything else.
   if (points >= 35) return "dangerous";
-  if (points >= 15) return "suspicious";
-  if (flags.length === 0) return "safe_structurally";
-  return "suspicious";
+  if (hasHighSeverity && flags.length >= 2) return "dangerous";
+  // Suspicious: any high finding, or at least one medium-severity finding.
+  if (hasHighSeverity || points >= 12) return "suspicious";
+  // Only low-severity findings (long URL, encoding, …): structurally fine on
+  // their own — the flags still surface in the report with details.
+  return "safe_structurally";
 }
 
 export function analyzeUrl(input: string): UrlAnalysisResult {

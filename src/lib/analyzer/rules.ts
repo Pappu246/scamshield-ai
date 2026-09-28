@@ -70,7 +70,7 @@ export const RULES: RuleDef[] = [
     patterns: m(
       /\b(google ?pay|gpay|phone ?pe|phonepe|paytm|amazon ?pay|apple ?pay)\b[^.\n]{0,40}\b(pay|send|transfer|karo|kijiye|bhejo|scan)\b/i,
       /\b(gift ?card|google ?play ?card|itunes ?card|steam ?card|usdt|bitcoin|btc|eth|crypto wallet)\b/i,
-      /\b(upi|vpa)\b[^.\n]{0,30}\b(pay|send|bhejo|karo|kijiye|id|address)\b/i,
+      /\b(upi|vpa)\b[^.\n]{0,30}\b(pay|send|transfer|deposit|bhejo|karo|kijiye)\b/i,
     ),
   },
   {
@@ -82,8 +82,12 @@ export const RULES: RuleDef[] = [
     explanation:
       "Fake refund and cashback messages are a common lure; they pressure you to 'confirm' details or pay a small 'processing' amount to release a larger sum.",
     patterns: m(
-      /\b(refund|cashback|rewards? points?|cash ?prize|lottery|jackpot|winnings?)\b[^.\n]{0,60}\b(claim|receive|transfer|credit|process|released?)\b/i,
-      /\b(claim|receive)\b[^.\n]{0,30}\b(refund|cashback|prize|winnings?|amount)\b/i,
+      // Requires an outbound money/contact verb — "send your UPI id to receive
+      // a refund" (merchant flow) must not match.
+      /\b(refund|cashback|rewards? points?|cash ?prize|lottery|jackpot|winnings?)\b[^.\n]{0,60}\b(claim|transfer|credit|process|released?)\b/i,
+      // "Claim" is the bait verb; bare "receive a refund" is neutral incoming
+      // money and must not fire.
+      /\bclaim\b[^.\n]{0,30}\b(refund|cashback|prize|winnings?|amount)\b/i,
     ),
   },
 
@@ -369,7 +373,7 @@ export const RULES: RuleDef[] = [
       "Official business conducted over a personal Gmail address or a raw phone number is unusual; institutions use domain email and official lines.",
     patterns: m(
       /\b[a-z0-9._%+-]+@(gmail|yahoo|hotmail|outlook|rediffmail)\.(com|co|in)\b/i,
-      /\b(contact|call|whatsapp)\b[^.\n]{0,20}\b(us|me|on)\b[^.\n]{0,10}\b(\+?\d[\d\s-]{8,14})\b/i,
+      /\b(contact|call|whatsapp)\b[^.\n]{0,20}\b(us|me|on)\b[^.\n]{0,10}\b\+?\d[\d\s-]{8,14}\d\b/i,
     ),
   },
 
