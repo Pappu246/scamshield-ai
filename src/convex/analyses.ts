@@ -17,6 +17,7 @@ import {
   analyzeUrlOnly,
   ValidationError,
 } from "../lib/analyzer/index";
+import { InvalidUrlError } from "../lib/analyzer/urlAnalyzer";
 import { truncateForStorage } from "../lib/analyzer/validation";
 import type { TextAnalysisResult, RiskAssessment, UrlAnalysisResult } from "../lib/analyzer/types";
 
@@ -111,6 +112,9 @@ function assessLinkOnly(urlReport: UrlAnalysisResult): RiskAssessment {
 // Rate limiting (fixed window counter)
 // ---------------------------------------------------------------------------
 
+// NOTE: fixed-window counter with a benign read-modify-write race under
+// concurrency — simultaneous mutations can overshoot `max` by a couple of
+// requests. Accepted for v1: the limiter is an abuse brake, not a billing meter.
 async function checkRateLimit(
   ctx: MutationCtx,
   userId: string,
@@ -196,6 +200,17 @@ export const analyzeUrl = mutation({
     const userId = await getAuthUserId(ctx);
     if (userId === null) {
       throw new Error("Authentication required. Sign in to run an analysis.");
+    }
+
+    // Validate before consuming the rate-limit slot so invalid input does
+    // not burn the user's quota. Same friendly-error contract as `analyze`.
+    try {
+      analyzeUrlOnly(url);
+    } catch (err) {
+      if (err instanceof ValidationError || err instanceof InvalidUrlError) {
+        throw new Error(err.message);
+      }
+      throw err;
     }
 
     await checkRateLimit(ctx, userId, "url");
