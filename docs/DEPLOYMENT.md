@@ -7,7 +7,7 @@ The platform runs the dev server and `convex dev` automatically; edits deploy on
 bun install
 bunx convex dev --once     # push functions + generate types (needs CONVEX deploy auth)
 bun run build              # tsc -b && vite build
-bun run test               # vitest suite (46 tests)
+bun run test               # vitest suite (63 tests)
 ```
 
 ## Environment variables
@@ -26,4 +26,4 @@ bun run test               # vitest suite (46 tests)
 ## Scaling notes (v2+)
 - Add OCR service behind the `image` analysis kind.
 - Add external reputation API (e.g. URL blocklist) behind `UrlAnalysisResult.verification: "external"`.
-- Consider a scheduled cleanup mutation to expire old `rateLimits` rows and, if policy requires, aging analyses.
+- Consider aging analyses (data-retention policy) if storage becomes a concern. A scheduled cleanup mutation for expired `rateLimits` rows already ships in v1 (`src/convex/crons.ts`, daily).

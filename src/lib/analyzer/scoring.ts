@@ -21,7 +21,6 @@ import type {
   MlPrediction,
   RiskAssessment,
   RiskLevel,
-  ScoreBreakdown,
   ScoreComponent,
   UncertaintyNote,
   UrlAnalysisResult,

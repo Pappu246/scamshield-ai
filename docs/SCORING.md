@@ -23,12 +23,12 @@ Input: *"Congratulations sir, aap select ho gaye ho. Bas 1999 registration fee j
 
 | Component | Raw | Points | Why |
 |---|---|---|---|
-| Rule engine | 34 (PAY-001 22 + PAY-002 12) | 34 | upfront fee; amount+payment verb |
+| Rule engine | 22 (PAY-001) | 22 | upfront fee |
 | ML classifier | p=1.00, margin=1.00 | 30 | strong scam vocabulary match |
 | URL analysis | suspicious | 20 | http + high-abuse `.top` TLD |
 | Entity risk | — | 0 | no raw IP / UPI handle |
 | Relief | — | 0 | no legitimacy evidence |
-| **Total** | | **84 → CRITICAL** (real run: 72–84 depending on evidence mix) |
+| **Total** | | **72 → HIGH** (verified by running the pipeline on this exact input) |
 
 Every result page shows this exact table (points / raw / cap per component), so the score is fully auditable.
 

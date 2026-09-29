@@ -3,7 +3,7 @@
 ScamShield AI v1 is a risk-**assessment** tool. It is not a verdict machine. The limitations below are product decisions, stated openly in the UI.
 
 ## Detection limitations
-- **Small seed dataset.** The classifier trains on ~75 hand-written examples. Real-world scam language drifts fast; paraphrases and novel scripts may evade both rules and model.
+- **Small seed dataset.** The classifier trains on 85 hand-written examples. Real-world scam language drifts fast; paraphrases and novel scripts may evade both rules and model.
 - **Transliteration coverage.** Hindi (Devanagari) support works via char-level transliteration plus a vocabulary map. Uncommon spellings and regional vocabulary may not match rules.
 - **No live URL checking.** Links are inspected structurally only. A clean-looking domain can still be malicious and a weird-looking one can be genuine; ownership, blocklists and page content are simply unknown — reported as "Unable to verify".
 - **No OCR in v1.** Screenshots are out of scope; the architecture reserves an `image` analysis kind for v2.

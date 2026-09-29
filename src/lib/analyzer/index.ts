@@ -24,7 +24,7 @@ import { normalizePipelineInput, normalizeText } from "./normalize";
 import { extractEntities } from "./entities";
 import { analyzeRules } from "./ruleEngine";
 import { predictText, type NaiveBayesPrediction } from "./classifier";
-import { analyzeUrl, parseUrl, InvalidUrlError } from "./urlAnalyzer";
+import { analyzeUrl, InvalidUrlError } from "./urlAnalyzer";
 import { assess } from "./scoring";
 import {
   MAX_URLS_PER_ANALYSIS,

@@ -31,7 +31,6 @@ export function runRuleEngine(rawText: string): RuleHit[] {
         pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g",
       );
       let match: RegExpExecArray | null;
-      let guard = 0;
       while ((match = re.exec(normalized)) !== null) {
         if (match[0].length === 0) {
           re.lastIndex++;
