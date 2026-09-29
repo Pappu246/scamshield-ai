@@ -54,7 +54,7 @@ export const RULES: RuleDef[] = [
     explanation:
       "A specific money amount combined with a request verb is how advance-fee and payment scams are framed.",
     patterns: m(
-      /\b(pay|send|transfer|deposit|bhejo|bhej|jama|pay karo|paise bhejo)\b[^.\n]{0,60}(₹|rs\.?|inr|\$|€|£)\s?\d/i,
+      /\b(pay|send|transfer|deposit|bhejo|bhej|jama|pay karo|paise bhejo)\b[^.\n]{0,60}(₹|rs\.?|inr|\$|€|£)\s?\d[\d,]*/i,
       /(₹|rs\.?|inr)\s?\d[\d,.]*[^.\n]{0,60}\b(pay|send|transfer|deposit|jama|bhejo|karna|kijiye|karo)\b/i,
       /\b\d{2,7}\s?(k|lakh|crore)\b[^.\n]{0,60}\b(pay|send|transfer|deposit|bhejo|jama)\b/i,
     ),
@@ -208,9 +208,10 @@ export const RULES: RuleDef[] = [
     explanation:
       "The 'you won a lottery/KBC prize' script is one of the most common scams; real lotteries never ask winners to pay a fee to release winnings.",
     patterns: m(
-      /\b(kbc|lottery|lucky draw|lucky winner|congratulations.{0,40}(won|winner|selected|prize))\b/i,
-      /\b(you have (been )?(won|selected|chosen)|aap (jit|jeet) (gaye|chuke)|aapka (number|naam) (select|choose))\b/i,
-      /\b(jio|airtel|vodafone|idea|whatsapp)\b[^.\n]{0,30}\b(lucky draw|lottery|prize|winner)\b/i,
+      /\b(kbc|lottery|lotto|lucky draw|lucky winner|scratch card|jackpot|inaam)\b/i,
+      /\b(prize|winnings|payout)\b/i,
+      /\b(congratulations|badhai ho)\b[^.\n]{0,60}\b(won|winner|prize|lottery|lotto|lucky draw|jackpot|inaam|jeet|jit|reward)\b/i,
+      /\b(aap|aapko)\b[^.\n]{0,30}\b(jeet|jit)\b[^.\n]{0,30}\b(gaye|gaya|chuke|hai|ho)\b/i,
     ),
   },
 

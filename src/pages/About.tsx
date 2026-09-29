@@ -81,9 +81,9 @@ export default function About() {
               </div>
               <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
                 Confusion matrix: TP {m.confusion.tp} · FP {m.confusion.fp} · FN {m.confusion.fn} ·
-                TN {m.confusion.tn}. False-positive rate {(m.falsePositiveRate * 100).toFixed(1)}% —
-                tuned deliberately low so ordinary messages aren&apos;t flagged. Metrics reflect the
-                seed dataset, not unseen real-world data.
+                TN {m.confusion.tn}. False-positive rate {(m.falsePositiveRate * 100).toFixed(1)}% on
+                this small seed dataset. This highlights the current dataset limitation and is not
+                representative of real-world performance.
               </p>
             </CardContent>
           </Card>
@@ -108,9 +108,12 @@ export default function About() {
               <CardTitle className="text-base font-medium">Privacy</CardTitle>
             </CardHeader>
             <CardContent className="text-sm leading-relaxed text-muted-foreground">
-              Analyses are stored privately per account and raw input is truncated after 2,000
-              characters. Feedback is used for future evaluation only and never auto-retrains the
-              model. No third-party tracking, no external calls during analysis.
+              Analyses are stored privately per account. Full raw input is never kept: only a
+              truncated preview (2,000 characters for messages, 500 for links) plus the quoted
+              evidence fragments needed for transparency. The analysis engine does not make
+              third-party reputation or website-content fetching calls during analysis. No
+              third-party tracking. Feedback is used for future evaluation only and never
+              auto-retrains the model.
             </CardContent>
           </Card>
         </div>
