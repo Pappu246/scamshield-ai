@@ -60,9 +60,9 @@ export const cleanupExpired = internalMutation({
 });
 
 // Daily at 03:00 UTC.
-crons.interval(
+crons.daily(
   "cleanup-expired-rate-limits",
-  { minuteUTC: 0, hourUTC: 3 },
+  { hourUTC: 3, minuteUTC: 0 },
   internal.crons.cleanupExpired,
 );
 

@@ -4,6 +4,8 @@
  * Shared by the Convex backend (Node runtime) and client-side pre-validation.
  */
 
+import type { TextAnalysisResult } from "./types";
+
 export const MAX_TEXT_LENGTH = 10_000;
 export const MIN_TEXT_LENGTH = 3;
 export const MAX_URLS_PER_ANALYSIS = 5;
@@ -46,4 +48,21 @@ export function validateUrlList(urls: string[] | undefined): string[] {
 /** Truncate stored content so raw user input is not kept longer than needed. */
 export function truncateForStorage(text: string, max = 2000): string {
   return text.length <= max ? text : `${text.slice(0, max)}…`;
+}
+
+/**
+ * Parse a persisted analysis result defensively: a corrupt or incomplete row
+ * must never crash the result page. Returns null unless the JSON decodes into
+ * something carrying the structural fields the UI relies on.
+ */
+export function parseStoredResult(json: string): TextAnalysisResult | null {
+  try {
+    const parsed = JSON.parse(json) as Partial<TextAnalysisResult> | null;
+    if (parsed === null || typeof parsed !== "object") return null;
+    if (!parsed.assessment || !parsed.assessment.breakdown) return null;
+    if (!Array.isArray(parsed.findings) || !Array.isArray(parsed.urlReports)) return null;
+    return parsed as TextAnalysisResult;
+  } catch {
+    return null;
+  }
 }

@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import type { TextAnalysisResult } from "@/lib/analyzer/types";
+import { parseStoredResult } from "@/lib/analyzer/validation";
 import { useQuery } from "convex/react";
 import { Link, useParams } from "react-router";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
@@ -35,7 +35,8 @@ export default function Result() {
   // Loading only while a well-formed id query is actually in flight. A
   // malformed id skips the query (data stays undefined) and must fall through
   // to the not-found state instead of spinning on the skeleton forever.
-  if (isValidId && data === undefined) {
+  if (data === undefined) {
+    if (!isValidId) return <ResultNotFound />;
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <AppHeader />
@@ -48,20 +49,14 @@ export default function Result() {
     );
   }
 
-  // Not found: malformed id, unknown id, or an analysis owned by another user.
-  if (!isValidId || data === null) {
+  // Not found: unknown id, or an analysis owned by another user.
+  if (data === null) {
     return <ResultNotFound />;
   }
 
-  // Guard against corrupt persisted JSON: a broken row must never crash the
-  // whole page. Show the not-found state instead.
-  let result: TextAnalysisResult | null = null;
-  try {
-    result = JSON.parse(data.resultJson) as TextAnalysisResult;
-  } catch {
-    result = null;
-  }
-  if (result === null || !result.assessment || !result.breakdown) {
+  // Corrupt persisted JSON must never crash the page — show not-found.
+  const result = parseStoredResult(data.resultJson);
+  if (result === null) {
     return <ResultNotFound />;
   }
 

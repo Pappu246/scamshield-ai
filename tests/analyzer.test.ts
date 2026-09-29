@@ -15,6 +15,8 @@ import {
 import { MODEL_METRICS, predictText, tokenize } from "../src/lib/analyzer/classifier";
 import { levelForScore, computeMlScore } from "../src/lib/analyzer/scoring";
 import { applyDevWordMap } from "../src/lib/analyzer/normalize";
+import { parseStoredResult } from "../src/lib/analyzer/validation";
+import { readFileSync, existsSync } from "node:fs";
 
 // ---------------------------------------------------------------------------
 // Normalizer
@@ -337,5 +339,40 @@ describe("scoring levels", () => {
   it("still escalates corroborated high-severity URL findings", () => {
     const r = analyzeUrl("http://sbi-secure-login.top/kyc");
     expect(r.verdict === "suspicious" || r.verdict === "dangerous").toBe(true);
+  });
+
+  it("rejects bracketed IPv6 literal hosts (documented v1 limitation)", () => {
+    expect(() => parseUrl("http://[::1]/")).toThrow(InvalidUrlError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Review round-2 regressions
+// ---------------------------------------------------------------------------
+
+describe("review round-2 regressions", () => {
+  it("parseStoredResult tolerates corrupt JSON and incomplete rows", () => {
+    expect(parseStoredResult("{not json")).toBeNull();
+    expect(parseStoredResult(JSON.stringify({ assessment: {} }))).toBeNull();
+    expect(parseStoredResult(JSON.stringify(null))).toBeNull();
+  });
+
+  it("parseStoredResult accepts a well-formed stored result", () => {
+    const r = analyzeText("pay the registration fee of 1999 today");
+    expect(parseStoredResult(JSON.stringify(r))).not.toBeNull();
+  });
+
+  it("keeps the deduped embedded-URL count within the documented limit (5)", () => {
+    const links = Array.from({ length: 7 }, (_, i) => `http://site-${i}.com/x`).join(" ");
+    const r = analyzeText(`see all of these ${links} today`);
+    expect(r.urlReports.length).toBeLessThanOrEqual(5);
+  });
+
+  it("tsconfig.test.json exists and is typechecked via its own script", () => {
+    expect(existsSync("tsconfig.test.json")).toBe(true);
+    const pkg = JSON.parse(readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
+    expect(pkg.scripts["typecheck:tests"]).toContain("tsconfig.test.json");
+    const cfg = JSON.parse(readFileSync("tsconfig.test.json", "utf8")) as { include: string[] };
+    expect(cfg.include).toContain("tests/**/*.ts");
   });
 });

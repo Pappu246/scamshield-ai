@@ -26,7 +26,12 @@ import { analyzeRules } from "./ruleEngine";
 import { predictText, type NaiveBayesPrediction } from "./classifier";
 import { analyzeUrl, parseUrl, InvalidUrlError } from "./urlAnalyzer";
 import { assess } from "./scoring";
-import { validateText, validateUrlList, ValidationError } from "./validation";
+import {
+  MAX_URLS_PER_ANALYSIS,
+  validateText,
+  validateUrlList,
+  ValidationError,
+} from "./validation";
 
 export type { NaiveBayesPrediction };
 
@@ -64,7 +69,11 @@ export function analyzeText(rawText: string, urls?: string[]): TextAnalysisResul
   const textUrls = entities
     .filter((e) => e.kind === "url" || e.kind === "ip_url")
     .map((e) => e.value);
-  const allUrls = [...new Set([...textUrls, ...safeUrls])].slice(0, 10);
+  // Keep the deduped total in sync with the documented/schema limit (5).
+  const allUrls = [...new Set([...textUrls, ...safeUrls])].slice(
+    0,
+    MAX_URLS_PER_ANALYSIS,
+  );
 
   const urlReports: UrlAnalysisResult[] = [];
   for (const url of allUrls) {

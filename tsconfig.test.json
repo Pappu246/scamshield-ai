@@ -10,8 +10,7 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "composite": true
+    "noEmit": true
   },
   "include": ["tests/**/*.ts"]
 }

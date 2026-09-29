@@ -7,6 +7,7 @@ ScamShield AI v1 is a risk-**assessment** tool. It is not a verdict machine. The
 - **Transliteration coverage.** Hindi (Devanagari) support works via char-level transliteration plus a vocabulary map. Uncommon spellings and regional vocabulary may not match rules.
 - **No live URL checking.** Links are inspected structurally only. A clean-looking domain can still be malicious and a weird-looking one can be genuine; ownership, blocklists and page content are simply unknown — reported as "Unable to verify".
 - **No OCR in v1.** Screenshots are out of scope; the architecture reserves an `image` analysis kind for v2.
+- **IPv6 literal hosts.** Bracketed IPv6 hosts (`http://[::1]/`) are rejected as malformed in v1 — raw-IP detection covers IPv4 only. A link submitted on its own returns a friendly validation error; one pasted inside a message text is kept visible as an unverifiable (URL-000) report rather than silently dropped.
 - **English-centric rules.** Non-English, non-Hindi messages get weak coverage.
 - **Adversarial evasion.** Trivial perturbations ("reg1stration", zero-width tricks, emoji padding) can defeat regex rules; only zero-width stripping is normalized away.
 
