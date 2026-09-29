@@ -32,7 +32,10 @@ export default function Result() {
     isValidId ? { id: id as Id<"analyses"> } : "skip",
   );
 
-  if (data === undefined) {
+  // Loading only while a well-formed id query is actually in flight. A
+  // malformed id skips the query (data stays undefined) and must fall through
+  // to the not-found state instead of spinning on the skeleton forever.
+  if (isValidId && data === undefined) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <AppHeader />
@@ -45,31 +48,22 @@ export default function Result() {
     );
   }
 
-  // Malformed id: the query was skipped, so there is nothing to wait for —
-  // show the not-found state instead of spinning forever.
-  if (data === null || (!isValidId && data === undefined)) {
-    return (
-      <div className="flex min-h-screen flex-col bg-background">
-        <AppHeader />
-        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
-          <Card className="border-border/60 shadow-none">
-            <CardContent className="py-12 text-center">
-              <ShieldAlert className="mx-auto size-8 text-muted-foreground" />
-              <h1 className="mt-4 text-lg font-medium">Analysis not found</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                This analysis doesn&apos;t exist or belongs to another account.
-              </p>
-              <Button asChild className="mt-6" variant="outline">
-                <Link to="/analyze">Analyze something</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    );
+  // Not found: malformed id, unknown id, or an analysis owned by another user.
+  if (!isValidId || data === null) {
+    return <ResultNotFound />;
   }
 
-  const result = JSON.parse(data.resultJson) as TextAnalysisResult;
+  // Guard against corrupt persisted JSON: a broken row must never crash the
+  // whole page. Show the not-found state instead.
+  let result: TextAnalysisResult | null = null;
+  try {
+    result = JSON.parse(data.resultJson) as TextAnalysisResult;
+  } catch {
+    result = null;
+  }
+  if (result === null || !result.assessment || !result.breakdown) {
+    return <ResultNotFound />;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -129,6 +123,28 @@ export default function Result() {
         <FeedbackRow analysisId={data._id} />
       </main>
       <AppFooter />
+    </div>
+  );
+}
+
+function ResultNotFound() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <AppHeader />
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6">
+        <Card className="border-border/60 shadow-none">
+          <CardContent className="py-12 text-center">
+            <ShieldAlert className="mx-auto size-8 text-muted-foreground" />
+            <h1 className="mt-4 text-lg font-medium">Analysis not found</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This analysis doesn&apos;t exist or belongs to another account.
+            </p>
+            <Button asChild className="mt-6" variant="outline">
+              <Link to="/analyze">Analyze something</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }
