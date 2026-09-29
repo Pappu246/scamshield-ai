@@ -386,3 +386,42 @@ describe("review round-2 regressions", () => {
     expect(cfg.include).toContain("tests/**/*.ts");
   });
 });
+
+// ---------------------------------------------------------------------------
+// QA round: IMP-002 prize context + PAY-002 evidence spans
+// ---------------------------------------------------------------------------
+
+describe("IMP-002 requires prize/lottery context", () => {
+  it("does not fire on a job-selection message with a fee (IMP-002 false positive)", () => {
+    const ids = analyzeRules(
+      "Congratulations! You have been selected for a work from home job. Pay the registration fee of Rs 1999 today.",
+    ).map((f) => f.id);
+    expect(ids).not.toContain("IMP-002");
+    // Other job/payment rules must still catch this message.
+    expect(ids).toContain("PAY-002");
+  });
+
+  it("fires on a genuine lottery/prize scam", () => {
+    const ids = analyzeRules(
+      "Congratulations! You have won the Jio lucky draw. Claim your prize now.",
+    ).map((f) => f.id);
+    expect(ids).toContain("IMP-002");
+  });
+});
+
+describe("PAY-002 preserves the full amount span in evidence", () => {
+  it("captures ₹1999 in full", () => {
+    const pay = analyzeRules("Pay ₹1999 today").find((f) => f.id === "PAY-002");
+    expect(pay?.evidence.some((e) => e.includes("Pay ₹1999"))).toBe(true);
+  });
+
+  it("captures ₹4500 in full", () => {
+    const pay = analyzeRules("Pay ₹4500 today").find((f) => f.id === "PAY-002");
+    expect(pay?.evidence.some((e) => e.includes("Pay ₹4500"))).toBe(true);
+  });
+
+  it("captures 'Rs 1999' in full", () => {
+    const pay = analyzeRules("Pay Rs 1999 today").find((f) => f.id === "PAY-002");
+    expect(pay?.evidence.some((e) => e.includes("Rs 1999"))).toBe(true);
+  });
+});
