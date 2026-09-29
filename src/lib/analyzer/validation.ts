@@ -60,6 +60,7 @@ export function parseStoredResult(json: string): TextAnalysisResult | null {
     const parsed = JSON.parse(json) as Partial<TextAnalysisResult> | null;
     if (parsed === null || typeof parsed !== "object") return null;
     if (!parsed.assessment || !parsed.assessment.breakdown) return null;
+    if (!parsed.ml || !Array.isArray(parsed.entities)) return null;
     if (!Array.isArray(parsed.findings) || !Array.isArray(parsed.urlReports)) return null;
     return parsed as TextAnalysisResult;
   } catch {

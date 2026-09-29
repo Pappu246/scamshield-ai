@@ -11,17 +11,15 @@ import { cronJobs } from "convex/server";
 import type { MutationCtx } from "./_generated/server";
 import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { RATE_LIMIT } from "./analyses";
 
 const crons = cronJobs();
-
-/** Keep in sync with RATE_LIMIT.windowMs in analyses.ts. */
-const RATE_LIMIT_WINDOW_MS = 60_000;
 
 /** Delete at most this many rows per page while sweeping. */
 const PAGE_SIZE = 500;
 
 async function deleteExpiredRows(ctx: MutationCtx): Promise<number> {
-  const cutoff = Date.now() - RATE_LIMIT_WINDOW_MS;
+  const cutoff = Date.now() - RATE_LIMIT.windowMs;
   let deleted = 0;
   let cursor: string | null = null;
 

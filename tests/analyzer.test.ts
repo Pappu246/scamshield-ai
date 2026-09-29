@@ -357,6 +357,16 @@ describe("review round-2 regressions", () => {
     expect(parseStoredResult(JSON.stringify(null))).toBeNull();
   });
 
+  it("parseStoredResult rejects partial rows missing ml or entities", () => {
+    const full = analyzeText("pay the registration fee of 1999 today");
+    const noMl = { ...full, ml: undefined };
+    const noEntities = { ...full, entities: undefined };
+    expect(parseStoredResult(JSON.stringify(noMl))).toBeNull();
+    expect(parseStoredResult(JSON.stringify(noEntities))).toBeNull();
+    // Same rows still pass the full guard for a complete result.
+    expect(parseStoredResult(JSON.stringify(full))).not.toBeNull();
+  });
+
   it("parseStoredResult accepts a well-formed stored result", () => {
     const r = analyzeText("pay the registration fee of 1999 today");
     expect(parseStoredResult(JSON.stringify(r))).not.toBeNull();

@@ -23,7 +23,7 @@ import type { TextAnalysisResult, RiskAssessment, UrlAnalysisResult } from "../l
 
 export const ANALYZER_VERSION = "v1.0.0";
 
-const RATE_LIMIT = { windowMs: 60_000, max: 20 }; // 20 analyses / minute / user
+export const RATE_LIMIT = { windowMs: 60_000, max: 20 }; // 20 analyses / minute / user
 
 /**
  * Assessment for a link-only analysis (no text). Only the URL component is
