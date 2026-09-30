@@ -7,7 +7,7 @@ The platform runs the dev server and `convex dev` automatically; edits deploy on
 bun install
 bunx convex dev --once     # push functions + generate types (needs CONVEX deploy auth)
 bun run build              # tsc -b && vite build
-bun run test               # vitest suite (63 tests)
+bun run test               # vitest suite (70 tests)
 ```
 
 ## Environment variables
