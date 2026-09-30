@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { parseStoredResult } from "@/lib/analyzer/validation";
+import { isPlausibleConvexId, parseStoredResult } from "@/lib/analyzer/validation";
 import { useQuery } from "convex/react";
 import { Link, useParams } from "react-router";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
@@ -24,9 +24,12 @@ import { toast } from "sonner";
 
 export default function Result() {
   const { id } = useParams<{ id: string }>();
-  // Convex ids are base32-ish 32-char strings; guard so a malformed /result/xyz
-  // URL param can never reach the backend as an invalid id.
-  const isValidId = typeof id === "string" && /^[a-z0-9]{32}$/i.test(id);
+  // Convex ids are 32 base32 chars with a trailing checksum; a string that
+  // passes a naive length/alphabet check (e.g. "aaaa…") still throws inside
+  // the v.id() validator on the server, which crashes this component during
+  // render. The stricter check keeps malformed ids from ever subscribing, so
+  // they fall through to the not-found state instead.
+  const isValidId = isPlausibleConvexId(id);
   const data = useQuery(
     api.analyses.get,
     isValidId ? { id: id as Id<"analyses"> } : "skip",

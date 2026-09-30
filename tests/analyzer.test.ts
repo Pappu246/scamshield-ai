@@ -15,7 +15,7 @@ import {
 import { MODEL_METRICS, predictText, tokenize } from "../src/lib/analyzer/classifier";
 import { levelForScore, computeMlScore } from "../src/lib/analyzer/scoring";
 import { applyDevWordMap } from "../src/lib/analyzer/normalize";
-import { parseStoredResult } from "../src/lib/analyzer/validation";
+import { isPlausibleConvexId, parseStoredResult } from "../src/lib/analyzer/validation";
 import { readFileSync, existsSync } from "node:fs";
 
 // ---------------------------------------------------------------------------
@@ -423,5 +423,75 @@ describe("PAY-002 preserves the full amount span in evidence", () => {
   it("captures 'Rs 1999' in full", () => {
     const pay = analyzeRules("Pay Rs 1999 today").find((f) => f.id === "PAY-002");
     expect(pay?.evidence.some((e) => e.includes("Rs 1999"))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Convex id validation (release-QA regression)
+// ---------------------------------------------------------------------------
+// Browser QA found that /result/aaaa…aaaa (32 chars passing the old regex
+// guard) crashed the result page: the server's v.id() validator rejected the
+// id and the error surfaced during a live-query render. These tests pin the
+// exact validator now used to filter ids before subscribing.
+
+// Genuine ids captured from a live Convex deployment during release QA.
+const REAL_CONVEX_IDS = [
+  "k17081xzbzezf4am3n50crfe1h8fdnpc",
+  "k178478tjp4wwcmjhq26kwptan8fcw7v",
+  "k174my3dybe2khnnapd5vm46nh8fc6y0",
+];
+
+describe("isPlausibleConvexId", () => {
+  it("accepts real Convex ids captured from a live deployment", () => {
+    for (const id of REAL_CONVEX_IDS) {
+      expect(isPlausibleConvexId(id)).toBe(true);
+    }
+  });
+
+  it("accepts ids case-insensitively", () => {
+    for (const id of REAL_CONVEX_IDS) {
+      expect(isPlausibleConvexId(id.toUpperCase())).toBe(true);
+    }
+  });
+
+  it("rejects the 32-char garbage id that crashed the QA result page", () => {
+    expect(isPlausibleConvexId("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")).toBe(false);
+  });
+
+  it("rejects the Crockford-excluded letters i, l, o, u", () => {
+    expect(isPlausibleConvexId("i".repeat(32))).toBe(false);
+    expect(isPlausibleConvexId("l".repeat(32))).toBe(false);
+    expect(isPlausibleConvexId("o".repeat(32))).toBe(false);
+    expect(isPlausibleConvexId("u".repeat(32))).toBe(false);
+  });
+
+  it("rejects wrong lengths and non-string values", () => {
+    expect(isPlausibleConvexId(REAL_CONVEX_IDS[0].slice(0, 31))).toBe(false);
+    expect(isPlausibleConvexId(REAL_CONVEX_IDS[0] + "a")).toBe(false);
+    expect(isPlausibleConvexId(undefined)).toBe(false);
+    expect(isPlausibleConvexId(null)).toBe(false);
+    expect(isPlausibleConvexId(123)).toBe(false);
+  });
+
+  it("rejects single-character corruption of a real id (checksum detects it)", () => {
+    for (const id of REAL_CONVEX_IDS) {
+      for (const pos of [0, 7, 15, 30]) {
+        const flipped = id[pos] === "b" ? "c" : "b";
+        const corrupted = id.slice(0, pos) + flipped + id.slice(pos + 1);
+        expect(isPlausibleConvexId(corrupted)).toBe(false);
+      }
+    }
+  });
+});
+
+describe("Naive Bayes token contributions aggregate duplicates", () => {
+  it("never returns the same token twice in the explanation lists", () => {
+    const prediction = predictText(
+      "Rs 25,00,000 prize claim, pay the Rs 1999 fee, Rs transfer now",
+    );
+    const scamTokens = prediction.topScamTokens.map((t) => t.token);
+    const legitTokens = prediction.topLegitTokens.map((t) => t.token);
+    expect(new Set(scamTokens).size).toBe(scamTokens.length);
+    expect(new Set(legitTokens).size).toBe(legitTokens.length);
   });
 });

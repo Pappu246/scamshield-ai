@@ -100,16 +100,20 @@ export function predictText(text: string): NaiveBayesPrediction {
   const tokens = tokenize(text);
   // log P(scam|x) - log P(legit|x), from prior + summed token log-odds
   let logOddsSum = Math.log(model.priorScam / (1 - model.priorScam));
-  const contributions: { token: string; logOdds: number }[] = [];
+  // Aggregate by token: repeated words contribute repeatedly to the score, and
+  // the explanation must show one entry per distinct token with the summed
+  // log-odds (also keeps the UI's per-token keys unique).
+  const aggregated = new Map<string, number>();
 
   for (const t of tokens) {
     const lo = model.tokenLogOdds.get(t);
     if (lo !== undefined) {
       logOddsSum += lo;
-      contributions.push({ token: t, logOdds: lo });
+      aggregated.set(t, (aggregated.get(t) ?? 0) + lo);
     }
   }
 
+  const contributions = Array.from(aggregated, ([token, logOdds]) => ({ token, logOdds }));
   const scamProbability = 1 / (1 + Math.exp(-logOddsSum));
 
   contributions.sort((a, b) => b.logOdds - a.logOdds);

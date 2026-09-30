@@ -9,9 +9,8 @@ export default function NotFound() {
       className="min-h-screen flex flex-col"
     >
 
-      
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center">
+      <main className="flex-1 flex flex-col items-center justify-center">
         <div className="max-w-5xl mx-auto relative px-4">
           <div className="flex items-center justify-center min-h-[200px]">
             <div className="text-center">
@@ -20,7 +19,7 @@ export default function NotFound() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </motion.div>
   );
 }
