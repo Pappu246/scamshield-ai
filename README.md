@@ -24,7 +24,7 @@ ScamShield AI analyzes suspicious messages and URLs and explains **why** somethi
 bun install
 bun run dev          # app (Freebuff runs this automatically)
 bunx convex dev --once   # deploy backend functions + generate types
-bun run test         # 46 unit/integration tests (vitest)
+bun run test         # 70 unit/integration tests (vitest)
 bun tsc -b --noEmit  # typecheck
 ```
 
@@ -38,7 +38,7 @@ message text ──► normalize ──► entity extraction ──┐
                     ┌──────────────────────────────┤
                     ▼                              ▼
               rule engine                    URL analyzer
-           (25 audited rules)              (structural only,
+           (24 audited rules)              (structural only,
                     │                       no site visits)
                     ▼                              │
              NB classifier ◄── seed dataset        │
