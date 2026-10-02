@@ -2,6 +2,9 @@ name: ScamShield v1.1 model research
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - v1-1-model-improvement
 
 permissions:
   contents: read
