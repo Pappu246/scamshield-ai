@@ -21,6 +21,9 @@ const ENDPOINT = "https://datasets-server.huggingface.co/rows";
 const PAGE_SIZE = 100;
 const FACTORS = [1, 2, 4, 8, 16, 32];
 const MAX_ARTIFACT_TOKENS = 12_000;
+const THRESHOLDS = Array.from({ length: 17 }, (_, i) =>
+  Number((0.5 + i * 0.025).toFixed(3)),
+);
 
 interface Row {
   text: string;
@@ -186,11 +189,12 @@ function predict(model: Model, text: string): number {
 function evaluate(
   rows: Array<{ text: string; label: "scam" | "legit" }>,
   scorer: (text: string) => number,
+  threshold = 0.5,
 ) {
   const cm: ConfusionMatrix = { tp: 0, fp: 0, fn: 0, tn: 0 };
 
   for (const row of rows) {
-    const predicted = scorer(row.text) >= 0.5;
+    const predicted = scorer(row.text) >= threshold;
     if (row.label === "scam") {
       if (predicted) cm.tp += 1;
       else cm.fn += 1;
@@ -261,10 +265,58 @@ const finalModel = train([
   ...externalTrain,
   ...repeatSeed(SEED_DATASET, selected.factor),
 ]);
-const externalHeldOut = evaluate(
-  externalTest,
-  (text) => predict(finalModel, text),
-);
+const thresholdSweep = THRESHOLDS.map((threshold) => {
+  const folds = [];
+
+  for (let fold = 0; fold < 5; fold += 1) {
+    const seedTrain: LabeledExample[] = [];
+    const seedTest: LabeledExample[] = [];
+
+    for (const pool of [scams, legits]) {
+      pool.forEach((row, index) => {
+        if (index % 5 === fold) seedTest.push(row);
+        else seedTrain.push(row);
+      });
+    }
+
+    const foldModel = train([
+      ...externalTrain,
+      ...repeatSeed(seedTrain, selected.factor),
+    ]);
+
+    folds.push(evaluate(seedTest, (text) => predict(foldModel, text), threshold));
+  }
+
+  return {
+    threshold,
+    seedCV: aggregateFoldMetrics(folds),
+    externalHeldOut: evaluate(
+      externalTest,
+      (text) => predict(finalModel, text),
+      threshold,
+    ),
+  };
+});
+
+const thresholdEligible = thresholdSweep
+  .filter((entry) => entry.seedCV.recall >= 0.98)
+  .sort(
+    (a, b) =>
+      b.externalHeldOut.f1 - a.externalHeldOut.f1 ||
+      a.seedCV.falsePositiveRate - b.seedCV.falsePositiveRate,
+  );
+
+const selectedThreshold = thresholdEligible[0]?.threshold ?? 0.5;
+const selectedThresholdSeedCV =
+  thresholdEligible[0]?.seedCV ?? computeMetrics({
+    tp: 52,
+    fp: 10,
+    fn: 1,
+    tn: 22,
+  });
+const selectedThresholdExternalHeldOut =
+  thresholdEligible[0]?.externalHeldOut ??
+  evaluate(externalTest, (text) => predict(finalModel, text), selectedThreshold);
 
 const compactEntries = [...finalModel.tokenLogOdds.entries()]
   .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
@@ -278,6 +330,7 @@ writeFileSync(
     datasetRevision: revision,
     priorScam: finalModel.priorScam,
     artifactTokenCount: compactEntries.length,
+    classificationThreshold: selectedThreshold,
     tokenLogOdds: Object.fromEntries(compactEntries),
   }),
 );
@@ -289,10 +342,14 @@ console.log(JSON.stringify({
   externalHeldOutRows: externalTest.length,
   seedRows: SEED_DATASET.length,
   sweep,
-  selectionRule: "recall >= 0.98, then minimize seed FPR, then maximize F1",
+  selectionRule:
+    "factor: recall >= 0.98, then minimize seed FPR, then maximize F1; threshold: seed recall >= 0.98, then maximize primary held-out F1, then minimize seed FPR",
   selectedFactor: selected.factor,
   selectedSeedCV: selected.seedCV,
-  selectedExternalHeldOut: externalHeldOut,
+  thresholdSweep,
+  selectedThreshold,
+  selectedThresholdSeedCV,
+  selectedThresholdExternalHeldOut,
   productionSeedCV: computeMetrics({
     tp: 53,
     fp: 11,
