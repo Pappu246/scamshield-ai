@@ -66,4 +66,5 @@ jobs:
             research/seed-oversampling-sweep.ts \
             research/seed-error-audit.ts \
             research/contextual-relief-audit.ts \
-            research/secondary-external-benchmark.ts             research/multilingual-benchmark.ts
+            research/secondary-external-benchmark.ts \
+            research/multilingual-benchmark.ts
