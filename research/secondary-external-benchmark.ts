@@ -134,9 +134,19 @@ const productionV1 = evaluate(
   0.5,
 );
 
+const ensembleWeight = candidateArtifact.ensembleWeight ?? 1;
+
 const candidateV11 = evaluate(
   rows,
   (text) => predict(candidateModel, text),
+  candidateArtifact.candidateThreshold ?? candidateArtifact.classificationThreshold,
+);
+
+const ensembleExternal = evaluate(
+  rows,
+  (text) =>
+    predictText(text).scamProbability * (1 - ensembleWeight) +
+    predict(candidateModel, text) * ensembleWeight,
   candidateArtifact.classificationThreshold,
 );
 
@@ -154,9 +164,11 @@ console.log(
         modelVersion: candidateArtifact.modelVersion,
         seedOversampleFactor: candidateArtifact.seedOversampleFactor,
         primaryDatasetRevision: candidateArtifact.datasetRevision,
+        classificationThreshold: candidateArtifact.classificationThreshold,
+        ensembleWeight,
       },
       productionV1OnIndependentDataset: productionV1,
-      v1_1CandidateOnIndependentDataset: candidateExternal,
+      v1_1CandidateOnIndependentDataset: candidateV11,
       v1_1EnsembleOnIndependentDataset: ensembleExternal,
     },
     null,
