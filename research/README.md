@@ -78,3 +78,20 @@ A future v1.1 promotion should satisfy all of the following:
 5. The evidence is strong enough to justify replacing the frozen v1 model.
 
 Until those gates are met, the research branch remains separate from main.
+## Multilingual research gate
+
+`research/multilingual-benchmark.ts` adds an evaluation-only check for a small
+Indian Hindi/Hinglish/English scam-message CSV. The source describes 120 rows
+with `message`, `label`, `reason`, `domain`, and `language` fields and is
+licensed Apache-2.0.
+
+The benchmark reports overall and per-language results for the frozen v1 model
+and the generated v1.1 candidate. It is deliberately a **smoke benchmark**:
+the dataset is small and curated, so it is not a replacement for a larger
+independent multilingual holdout.
+
+The manual research workflow now includes this benchmark after candidate
+generation. Its latest run has not yet been executed after this harness was
+added, so no multilingual benchmark score is claimed yet.
+
+Source: `bhoomee/Indian_Multilingual_Scam_Message_Dataset-bucket`.
