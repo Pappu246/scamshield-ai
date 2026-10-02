@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { isPlausibleConvexId, parseStoredResult } from "@/lib/analyzer/validation";
+import { friendlyErrorMessage } from "@/lib/friendlyError";
 import { useQuery } from "convex/react";
 import { Link, useParams } from "react-router";
 import { ShieldAlert, ShieldCheck } from "lucide-react";
@@ -174,7 +175,7 @@ function FeedbackRow({ analysisId }: { analysisId: Id<"analyses"> }) {
               await submit({ analysisId, verdict: "correct" });
               setSubmitted(true);
             } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Could not save feedback.");
+              toast.error(friendlyErrorMessage(e, "Could not save feedback."));
             }
           }}
         >
@@ -195,7 +196,7 @@ function FeedbackRow({ analysisId }: { analysisId: Id<"analyses"> }) {
               await submit({ analysisId, verdict: "not_sure" });
               setSubmitted(true);
             } catch (e) {
-              toast.error(e instanceof Error ? e.message : "Could not save feedback.");
+              toast.error(friendlyErrorMessage(e, "Could not save feedback."));
             }
           }}
         >
@@ -217,7 +218,7 @@ function FeedbackRow({ analysisId }: { analysisId: Id<"analyses"> }) {
                 await submit({ analysisId, verdict: "incorrect", comment: comment || undefined });
                 setSubmitted(true);
               } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Could not save feedback.");
+                toast.error(friendlyErrorMessage(e, "Could not save feedback."));
               }
             }}
           >

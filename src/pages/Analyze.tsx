@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/convex/_generated/api";
 import { MAX_TEXT_LENGTH, MAX_URLS_PER_ANALYSIS } from "@/lib/analyzer/validation";
+import { friendlyErrorMessage } from "@/lib/friendlyError";
 import { useMutation } from "convex/react";
 import { useNavigate } from "react-router";
 import { Loader2, ScanSearch, Link2 } from "lucide-react";
@@ -72,7 +73,7 @@ function TextForm() {
       const { analysisId } = await analyze({ text, urls: urlList.length ? urlList : undefined });
       navigate(`/result/${analysisId}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Analysis failed.");
+      toast.error(friendlyErrorMessage(err, "Analysis failed."));
       setLoading(false);
     }
   }
@@ -125,7 +126,7 @@ function UrlForm() {
       const { analysisId } = await analyzeUrl({ url });
       navigate(`/result/${analysisId}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Analysis failed.");
+      toast.error(friendlyErrorMessage(err, "Analysis failed."));
       setLoading(false);
     }
   }
