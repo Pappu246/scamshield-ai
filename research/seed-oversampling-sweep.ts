@@ -46,10 +46,36 @@ async function loadExternal(): Promise<{ rows: Row[]; revision: string }> {
     url.searchParams.set("offset", String(offset));
     url.searchParams.set("length", String(PAGE_SIZE));
 
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Dataset HTTP ${response.status}`);
+    let pageResponse: Response | undefined;
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      const response = await fetch(url);
+      if (response.ok) {
+        pageResponse = response;
+        break;
+      }
 
-    const page = (await response.json()) as {
+      if (
+        response.status !== 429 &&
+        response.status !== 502 &&
+        response.status !== 503 &&
+        response.status !== 504
+      ) {
+        throw new Error(`Dataset HTTP ${response.status}`);
+      }
+
+      const retryAfter = Number(response.headers.get("retry-after") ?? "0");
+      const delay = Math.min(
+        15_000,
+        Math.max(attempt * 1500, Number.isFinite(retryAfter) ? retryAfter * 1000 : 0),
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+
+    if (!pageResponse) {
+      throw new Error("Dataset server unavailable after retries.");
+    }
+
+    const page = (await pageResponse.json()) as {
       rows: Array<{ row: { text?: unknown; label?: unknown } }>;
       num_rows_total?: number;
       partial?: boolean;
@@ -58,7 +84,7 @@ async function loadExternal(): Promise<{ rows: Row[]; revision: string }> {
     if (page.partial) throw new Error("Dataset viewer returned a partial slice.");
 
     expectedTotal = page.num_rows_total ?? expectedTotal;
-    const pageRevision = response.headers.get("x-revision") ?? "";
+    const pageRevision = pageResponse.headers.get("x-revision") ?? "";
     if (!pageRevision) throw new Error("Dataset revision fingerprint missing.");
     if (revision && revision !== pageRevision) {
       throw new Error(`Dataset revision changed: ${revision} -> ${pageRevision}`);
