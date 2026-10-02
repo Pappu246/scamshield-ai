@@ -1,0 +1,66 @@
+name: ScamShield v1.1 model research
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Regression tests
+        run: bun run test
+
+      - name: Analyzer test typecheck
+        run: bun run typecheck:tests
+
+      - name: Primary external benchmark
+        run: bun run research:model:benchmark
+
+      - name: Seed oversampling + ensemble research
+        run: bun research/seed-oversampling-sweep.ts
+
+      - name: Seed error audit
+        run: bun research/seed-error-audit.ts
+
+      - name: Contextual legitimacy relief audit
+        run: bun research/contextual-relief-audit.ts
+
+      - name: Download UCI SMS benchmark
+        run: |
+          curl -L --fail --retry 5 --retry-delay 2 \
+            https://archive.ics.uci.edu/ml/machine-learning-databases/00228/smsspamcollection.zip \
+            -o /tmp/smsspamcollection.zip
+          unzip -p /tmp/smsspamcollection.zip SMSSpamCollection > /tmp/SMSSpamCollection
+          test "$(wc -l < /tmp/SMSSpamCollection)" -eq 5574
+
+      - name: Upload candidate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scamshield-v1-1-model
+          path: /tmp/scamshield-v11-candidate-model.json
+          if-no-files-found: error
+
+      - name: Independent UCI benchmark
+        run: bun research/secondary-external-benchmark.ts
+
+      - name: Typecheck research files
+        run: |
+          bunx tsc --noEmit --moduleResolution bundler --target ES2022 \
+            research/seed-oversampling-sweep.ts \
+            research/seed-error-audit.ts \
+            research/contextual-relief-audit.ts \
+            research/secondary-external-benchmark.ts
