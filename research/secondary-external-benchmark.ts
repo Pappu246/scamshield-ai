@@ -24,7 +24,6 @@ const SECONDARY = {
 };
 const ENDPOINT = "https://datasets-server.huggingface.co/rows";
 const PAGE_SIZE = 100;
-const SEED_OVERSAMPLE_FACTOR = 32;
 
 interface Row {
   text: string;
@@ -161,48 +160,6 @@ async function loadDataset(
   };
 }
 
-function train(rows: Array<{ text: string; label: "scam" | "legit" }>): Model {
-  const scam = new Map<string, number>();
-  const legit = new Map<string, number>();
-  const vocabulary = new Set<string>();
-  let totalScam = 0;
-  let totalLegit = 0;
-
-  for (const row of rows) {
-    for (const token of tokenize(row.text)) {
-      vocabulary.add(token);
-
-      if (row.label === "scam") {
-        scam.set(token, (scam.get(token) ?? 0) + 1);
-        totalScam += 1;
-      } else {
-        legit.set(token, (legit.get(token) ?? 0) + 1);
-        totalLegit += 1;
-      }
-    }
-  }
-
-  const scamDocs = rows.filter((row) => row.label === "scam").length;
-  const legitDocs = rows.filter((row) => row.label === "legit").length;
-  const priorScam = scamDocs / Math.max(1, scamDocs + legitDocs);
-  const alpha = 1;
-  const vocabSize = vocabulary.size + alpha;
-  const tokenLogOdds = new Map<string, number>();
-
-  for (const token of vocabulary) {
-    const s = (scam.get(token) ?? 0) + alpha;
-    const l = (legit.get(token) ?? 0) + alpha;
-
-    tokenLogOdds.set(
-      token,
-      Math.log(s / (totalScam + vocabSize)) -
-        Math.log(l / (totalLegit + vocabSize)),
-    );
-  }
-
-  return { priorScam, tokenLogOdds };
-}
-
 function predict(model: Model, text: string): number {
   let logOdds = Math.log(model.priorScam / Math.max(1e-9, 1 - model.priorScam));
 
@@ -269,10 +226,6 @@ console.log(JSON.stringify({
     rawRows: secondary.rawRows,
     skippedRows: secondary.skippedRows,
     uniqueUsableRows: secondary.rows.length,
-  },
-  candidateTraining: {
-    seedOversampleFactor: SEED_OVERSAMPLE_FACTOR,
-    trainingRows: candidateTrainingRows.length,
   },
   productionV1OnIndependentDataset: productionExternal,
   v1_1CandidateOnIndependentDataset: candidateExternal,
