@@ -119,6 +119,7 @@ const candidateArtifact = JSON.parse(
   datasetRevision: string;
   priorScam: number;
   classificationThreshold: number;
+  ensembleWeight?: number;
   tokenLogOdds: Record<string, number>;
 };
 
@@ -155,7 +156,8 @@ console.log(
         primaryDatasetRevision: candidateArtifact.datasetRevision,
       },
       productionV1OnIndependentDataset: productionV1,
-      v1_1CandidateOnIndependentDataset: candidateV11,
+      v1_1CandidateOnIndependentDataset: candidateExternal,
+      v1_1EnsembleOnIndependentDataset: ensembleExternal,
     },
     null,
     2,
