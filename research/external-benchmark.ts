@@ -63,10 +63,17 @@ async function fetchPage(offset: number) {
   return { revision, payload };
 }
 
-async function loadDataset(): Promise<{ rows: BenchmarkRow[]; revision: string }> {
+async function loadDataset(): Promise<{
+  rows: BenchmarkRow[];
+  revision: string;
+  rawRows: number;
+  skippedRows: number;
+}> {
   const rows: BenchmarkRow[] = [];
   let expectedTotal: number | undefined;
   let datasetRevision: string | undefined;
+  let rawRows = 0;
+  let skippedRows = 0;
 
   for (let offset = 0; ; offset += PAGE_SIZE) {
     const { revision, payload } = await fetchPage(offset);
@@ -83,6 +90,7 @@ async function loadDataset(): Promise<{ rows: BenchmarkRow[]; revision: string }
     expectedTotal ??= payload.num_rows_total;
 
     for (const entry of payload.rows ?? []) {
+      rawRows += 1;
       const text = typeof entry.row.text === "string" ? entry.row.text.trim() : "";
       const label =
         entry.row.label === "spam"
@@ -92,9 +100,10 @@ async function loadDataset(): Promise<{ rows: BenchmarkRow[]; revision: string }
             : null;
 
       if (text && label) rows.push({ text, label });
+      else skippedRows += 1;
     }
 
-    if (rows.length >= (expectedTotal ?? 0) || (payload.rows ?? []).length < PAGE_SIZE) {
+    if (rawRows >= (expectedTotal ?? 0) || (payload.rows ?? []).length < PAGE_SIZE) {
       break;
     }
   }
@@ -103,9 +112,9 @@ async function loadDataset(): Promise<{ rows: BenchmarkRow[]; revision: string }
     throw new Error("Dataset server did not provide an x-revision fingerprint.");
   }
 
-  if (expectedTotal !== undefined && rows.length < expectedTotal) {
+  if (expectedTotal !== undefined && rawRows < expectedTotal) {
     throw new Error(
-      `Fetched ${rows.length} labeled rows but dataset reports ${expectedTotal} total rows.`,
+      `Fetched ${rawRows} raw rows but dataset reports ${expectedTotal} total rows.`,
     );
   }
 
@@ -115,7 +124,12 @@ async function loadDataset(): Promise<{ rows: BenchmarkRow[]; revision: string }
     if (!deduped.has(key)) deduped.set(key, row);
   }
 
-  return { rows: [...deduped.values()], revision: datasetRevision };
+  return {
+    rows: [...deduped.values()],
+    revision: datasetRevision,
+    rawRows,
+    skippedRows,
+  };
 }
 
 function evaluate(
@@ -144,7 +158,7 @@ function fmt(value: number) {
   return value.toFixed(4);
 }
 
-const { rows, revision } = await loadDataset();
+const { rows, revision, rawRows, skippedRows } = await loadDataset();
 const externalV1 = evaluate(rows, predictText);
 const externalV11 = evaluate(rows, predictTextExperimental);
 
@@ -156,7 +170,9 @@ console.log(JSON.stringify({
   config: CONFIG,
   split: SPLIT,
   revision,
-  rows: rows.length,
+  rawRows,
+  skippedRows,
+  uniqueUsableRows: rows.length,
   labelCounts: { scam: scamCount, legit: legitCount },
   productionSeedCV: {
     accuracy: MODEL_METRICS.accuracy,
