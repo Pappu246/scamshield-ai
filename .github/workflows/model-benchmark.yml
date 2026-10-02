@@ -42,5 +42,13 @@ jobs:
       - name: Seed oversampling sweep
         run: bun research/seed-oversampling-sweep.ts
 
+      - name: Download UCI SMS benchmark
+        run: |
+          curl -L --fail --retry 5 --retry-delay 2 \
+            https://archive.ics.uci.edu/ml/machine-learning-databases/00228/smsspamcollection.zip \
+            -o /tmp/smsspamcollection.zip
+          unzip -p /tmp/smsspamcollection.zip SMSSpamCollection > /tmp/SMSSpamCollection
+          test "$(wc -l < /tmp/SMSSpamCollection)" -eq 5574
+
       - name: Independent external benchmark
         run: bun research/secondary-external-benchmark.ts
