@@ -30,6 +30,9 @@ jobs:
       - name: Tests
         run: bun run test
 
+      - name: Generate Convex types
+        run: bunx convex codegen --typecheck disable
+
       - name: App typecheck
         run: bun tsc -b --noEmit
 
