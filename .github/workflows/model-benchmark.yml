@@ -36,9 +36,6 @@ jobs:
       - name: External model benchmark
         run: bun run research:model:benchmark
 
-      - name: External-trained candidate benchmark
-        run: bun research/external-train-candidate.ts
-
       - name: Seed oversampling sweep
         run: bun research/seed-oversampling-sweep.ts
 
