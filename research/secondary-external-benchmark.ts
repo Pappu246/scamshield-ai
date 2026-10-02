@@ -22,8 +22,9 @@ const SECONDARY = {
   config: "plain_text",
   split: "train",
 };
-const ENDPOINT = "https://datasets-server.huggingface.co/rows";
-const PAGE_SIZE = 100;
+const CANDIDATE_ARTIFACT = "/tmp/scamshield-v11-candidate-model.json";
+const UCI_FILE = "/tmp/SMSSpamCollection";
+const EXPECTED_ROWS = 5574;
 
 interface Row {
   text: string;
@@ -35,131 +36,86 @@ interface Model {
   tokenLogOdds: Map<string, number>;
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function fetchPage(
-  dataset: string,
-  config: string,
-  split: string,
-  offset: number,
-): Promise<{
-  revision: string;
-  payload: {
-    rows: Array<{ row: { text?: unknown; sms?: unknown; label?: unknown } }>;
-    num_rows_total?: number;
-    partial?: boolean;
-  };
-}> {
-  const url = new URL(ENDPOINT);
-  url.searchParams.set("dataset", dataset);
-  url.searchParams.set("config", config);
-  url.searchParams.set("split", split);
-  url.searchParams.set("offset", String(offset));
-  url.searchParams.set("length", String(PAGE_SIZE));
-
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
-    const response = await fetch(url);
-    if (response.ok) {
-      const payload = (await response.json()) as {
-        rows: Array<{ row: { text?: unknown; sms?: unknown; label?: unknown } }>;
-        num_rows_total?: number;
-        partial?: boolean;
-      };
-      const revision = response.headers.get("x-revision") ?? "";
-      if (!revision) throw new Error(`Missing x-revision for ${dataset}`);
-      return { revision, payload };
-    }
-
-    if (
-      response.status !== 429 &&
-      response.status !== 502 &&
-      response.status !== 503 &&
-      response.status !== 504
-    ) {
-      throw new Error(`Dataset HTTP ${response.status} for ${dataset} at offset ${offset}`);
-    }
-
-    const retryAfter = Number(response.headers.get("retry-after") ?? "0");
-    const delayMs = Math.max(attempt * 1500, Number.isFinite(retryAfter) ? retryAfter * 1000 : 0);
-    await sleep(Math.min(delayMs, 15_000));
-  }
-
-  throw new Error(`Dataset server remained unavailable for ${dataset} at offset ${offset}`);
-}
-
-async function loadDataset(
-  source: { dataset: string; config: string; split: string },
-): Promise<{ rows: Row[]; revision: string; rawRows: number; skippedRows: number }> {
+function loadUciDataset(): { rows: Row[]; rawRows: number; skippedRows: number } {
+  const lines = readFileSync(UCI_FILE, "utf8").split(/\r?\n/);
   const rows: Row[] = [];
-  let expectedTotal = 0;
   let rawRows = 0;
   let skippedRows = 0;
-  let revision = "";
 
-  for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { revision: pageRevision, payload } = await fetchPage(
-      source.dataset,
-      source.config,
-      source.split,
-      offset,
-    );
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    rawRows += 1;
 
-    if (payload.partial) throw new Error(`Partial dataset slice for ${source.dataset}`);
-
-    expectedTotal = payload.num_rows_total ?? expectedTotal;
-
-    if (revision && revision !== pageRevision) {
-      throw new Error(`Dataset revision changed: ${revision} -> ${pageRevision}`);
-    }
-    revision = pageRevision;
-
-    for (const entry of payload.rows ?? []) {
-      rawRows += 1;
-
-      const text =
-        typeof entry.row.text === "string"
-          ? entry.row.text.trim()
-          : typeof entry.row.sms === "string"
-            ? entry.row.sms.trim()
-            : "";
-
-      const labelValue = entry.row.label;
-      const label =
-        labelValue === "spam" || labelValue === 1 || labelValue === "1"
-          ? "scam"
-          : labelValue === "ham" || labelValue === 0 || labelValue === "0"
-            ? "legit"
-            : null;
-
-      if (text && label) rows.push({ text, label });
-      else skippedRows += 1;
+    const tab = line.indexOf("\t");
+    if (tab <= 0) {
+      skippedRows += 1;
+      continue;
     }
 
-    if (rawRows >= expectedTotal || (payload.rows ?? []).length < PAGE_SIZE) break;
+    const labelValue = line.slice(0, tab).trim();
+    const text = line.slice(tab + 1).trim();
+
+    const label =
+      labelValue === "spam"
+        ? "scam"
+        : labelValue === "ham"
+          ? "legit"
+          : null;
+
+    if (text && label) rows.push({ text, label });
+    else skippedRows += 1;
   }
 
-  if (rawRows !== expectedTotal) {
+  if (rawRows !== EXPECTED_ROWS) {
     throw new Error(
-      `Fetched ${rawRows} raw rows but ${source.dataset} reports ${expectedTotal}`,
+      `UCI SMS benchmark expected ${EXPECTED_ROWS} raw rows, received ${rawRows}`,
     );
   }
 
-  const deduped = new Map<string, Row>();
-  for (const row of rows) {
-    const key = row.text.toLowerCase().replace(/\s+/g, " ").trim();
-    if (!deduped.has(key)) deduped.set(key, row);
-  }
-
-  return {
-    rows: [...deduped.values()],
-    revision,
-    rawRows,
-    skippedRows,
-  };
+  return { rows, rawRows, skippedRows };
 }
 
+const { rows: secondary, rawRows, skippedRows } = loadUciDataset();
+
+const candidateArtifact = JSON.parse(readFileSync(CANDIDATE_ARTIFACT, "utf8")) as {
+  modelVersion: string;
+  seedOversampleFactor: number;
+  datasetRevision: string;
+  priorScam: number;
+  tokenLogOdds: Record<string, number>;
+};
+
+const candidateModel: Model = {
+  priorScam: candidateArtifact.priorScam,
+  tokenLogOdds: new Map(Object.entries(candidateArtifact.tokenLogOdds)),
+};
+
+const productionExternal = evaluate(
+  secondary,
+  (text) => predictText(text).scamProbability,
+);
+
+const candidateExternal = evaluate(
+  secondary,
+  (text) => predict(candidateModel, text),
+);
+
+console.log(JSON.stringify({
+  dataset: {
+    source: "UCI SMS Spam Collection",
+    license: "CC BY 4.0",
+    rawRows,
+    skippedRows,
+    usableRows: secondary.length,
+  },
+  candidateArtifact: {
+    modelVersion: candidateArtifact.modelVersion,
+    seedOversampleFactor: candidateArtifact.seedOversampleFactor,
+    primaryDatasetRevision: candidateArtifact.datasetRevision,
+  },
+  productionV1OnIndependentDataset: productionExternal,
+  v1_1CandidateOnIndependentDataset: candidateExternal,
+}, null, 2));
 function predict(model: Model, text: string): number {
   let logOdds = Math.log(model.priorScam / Math.max(1e-9, 1 - model.priorScam));
 
