@@ -41,3 +41,6 @@ jobs:
 
       - name: External-plus-seed augmented CV
         run: bun research/external-augmented-cv.ts
+
+      - name: Seed oversampling sweep
+        run: bun research/seed-oversampling-sweep.ts
