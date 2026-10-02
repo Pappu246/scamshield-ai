@@ -42,21 +42,6 @@ jobs:
       - name: Seed oversampling sweep
         run: bun research/seed-oversampling-sweep.ts
 
-      - name: Capture v1.1 candidate artifact
-        if: github.event_name == 'push'
-        run: |
-          mkdir -p research/generated
-          cp /tmp/scamshield-v11-candidate-model.json research/generated/nb-scam-v1.1.json
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add research/generated/nb-scam-v1.1.json
-          if git diff --cached --quiet; then
-            echo "Candidate artifact unchanged."
-          else
-            git commit -m "research: capture v1.1 candidate artifact [skip ci]"
-            git push
-          fi
-
       - name: Upload v1.1 candidate artifact
         uses: actions/upload-artifact@v4
         with:
