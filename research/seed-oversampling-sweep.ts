@@ -12,6 +12,7 @@ import {
   predictText,
   type ConfusionMatrix,
 } from "../src/lib/analyzer/classifier";
+import { writeFileSync } from "node:fs";
 import { SEED_DATASET, type LabeledExample } from "../src/lib/analyzer/dataset";
 import { tokenize } from "../src/lib/analyzer/classifier";
 
@@ -236,6 +237,17 @@ const finalModel = train([
 const externalHeldOut = evaluate(
   externalTest,
   (text) => predict(finalModel, text),
+);
+
+writeFileSync(
+  "/tmp/scamshield-v11-candidate-model.json",
+  JSON.stringify({
+    modelVersion: "nb-scam-v1.1-external-seed-oversampled",
+    seedOversampleFactor: selected.factor,
+    datasetRevision: revision,
+    priorScam: finalModel.priorScam,
+    tokenLogOdds: Object.fromEntries(finalModel.tokenLogOdds),
+  }),
 );
 
 console.log(JSON.stringify({
