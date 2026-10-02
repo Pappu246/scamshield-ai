@@ -45,6 +45,9 @@ jobs:
       - name: Seed error audit
         run: bun research/seed-error-audit.ts
 
+      - name: Factor-32 threshold sweep
+        run: bun research/factor32-threshold-sweep.ts
+
       - name: Upload v1.1 candidate artifact
         uses: actions/upload-artifact@v4
         with:
