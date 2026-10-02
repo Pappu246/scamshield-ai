@@ -1,30 +1,26 @@
 /**
  * Research-only independent benchmark.
  *
- * Training data:
- *   anmolshrivastav/scam-ham-india (primary research dataset) + ScamShield
- *   seed examples oversampled by the selected factor (32).
+ * The v1.1 candidate model is produced by the preceding seed-oversampling
+ * experiment and saved to /tmp/scamshield-v11-candidate-model.json.
  *
- * Evaluation data:
- *   ucirvine/sms_spam / plain_text / train
+ * Independent evaluation data:
+ *   UCI SMS Spam Collection (5,574 English ham/spam SMS).
  *
  * The independent dataset is never used for training or tuning.
- * This script compares production v1 with the v1.1 oversampled candidate.
  */
 
-import { computeMetrics, predictText, type ConfusionMatrix } from "../src/lib/analyzer/classifier";
+import {
+  computeMetrics,
+  predictText,
+  type ConfusionMatrix,
+} from "../src/lib/analyzer/classifier";
 import { tokenize } from "../src/lib/analyzer/classifier";
 import { readFileSync } from "node:fs";
 
 const CANDIDATE_ARTIFACT = "/tmp/scamshield-v11-candidate-model.json";
-const SECONDARY = {
-  dataset: "ucirvine/sms_spam",
-  config: "plain_text",
-  split: "train",
-};
-const CANDIDATE_ARTIFACT = "/tmp/scamshield-v11-candidate-model.json";
 const UCI_FILE = "/tmp/SMSSpamCollection";
-const EXPECTED_ROWS = 5574;
+const EXPECTED_ROWS = 5_574;
 
 interface Row {
   text: string;
@@ -36,7 +32,11 @@ interface Model {
   tokenLogOdds: Map<string, number>;
 }
 
-function loadUciDataset(): { rows: Row[]; rawRows: number; skippedRows: number } {
+function loadUciDataset(): {
+  rows: Row[];
+  rawRows: number;
+  skippedRows: number;
+} {
   const lines = readFileSync(UCI_FILE, "utf8").split(/\r?\n/);
   const rows: Row[] = [];
   let rawRows = 0;
@@ -52,13 +52,13 @@ function loadUciDataset(): { rows: Row[]; rawRows: number; skippedRows: number }
       continue;
     }
 
-    const labelValue = line.slice(0, tab).trim();
+    const rawLabel = line.slice(0, tab).trim();
     const text = line.slice(tab + 1).trim();
 
     const label =
-      labelValue === "spam"
+      rawLabel === "spam"
         ? "scam"
-        : labelValue === "ham"
+        : rawLabel === "ham"
           ? "legit"
           : null;
 
@@ -75,47 +75,6 @@ function loadUciDataset(): { rows: Row[]; rawRows: number; skippedRows: number }
   return { rows, rawRows, skippedRows };
 }
 
-const { rows: secondary, rawRows, skippedRows } = loadUciDataset();
-
-const candidateArtifact = JSON.parse(readFileSync(CANDIDATE_ARTIFACT, "utf8")) as {
-  modelVersion: string;
-  seedOversampleFactor: number;
-  datasetRevision: string;
-  priorScam: number;
-  tokenLogOdds: Record<string, number>;
-};
-
-const candidateModel: Model = {
-  priorScam: candidateArtifact.priorScam,
-  tokenLogOdds: new Map(Object.entries(candidateArtifact.tokenLogOdds)),
-};
-
-const productionExternal = evaluate(
-  secondary,
-  (text) => predictText(text).scamProbability,
-);
-
-const candidateExternal = evaluate(
-  secondary,
-  (text) => predict(candidateModel, text),
-);
-
-console.log(JSON.stringify({
-  dataset: {
-    source: "UCI SMS Spam Collection",
-    license: "CC BY 4.0",
-    rawRows,
-    skippedRows,
-    usableRows: secondary.length,
-  },
-  candidateArtifact: {
-    modelVersion: candidateArtifact.modelVersion,
-    seedOversampleFactor: candidateArtifact.seedOversampleFactor,
-    primaryDatasetRevision: candidateArtifact.datasetRevision,
-  },
-  productionV1OnIndependentDataset: productionExternal,
-  v1_1CandidateOnIndependentDataset: candidateExternal,
-}, null, 2));
 function predict(model: Model, text: string): number {
   let logOdds = Math.log(model.priorScam / Math.max(1e-9, 1 - model.priorScam));
 
@@ -127,7 +86,10 @@ function predict(model: Model, text: string): number {
   return 1 / (1 + Math.exp(-logOdds));
 }
 
-function evaluate(rows: Row[], scorer: (text: string) => number) {
+function evaluate(
+  rows: Row[],
+  scorer: (text: string) => number,
+) {
   const cm: ConfusionMatrix = { tp: 0, fp: 0, fn: 0, tn: 0 };
 
   for (const row of rows) {
@@ -146,8 +108,11 @@ function evaluate(rows: Row[], scorer: (text: string) => number) {
   return computeMetrics(cm);
 }
 
-const secondary = await loadDataset(SECONDARY);
-const candidateArtifact = JSON.parse(readFileSync(CANDIDATE_ARTIFACT, "utf8")) as {
+const { rows, rawRows, skippedRows } = loadUciDataset();
+
+const candidateArtifact = JSON.parse(
+  readFileSync(CANDIDATE_ARTIFACT, "utf8"),
+) as {
   modelVersion: string;
   seedOversampleFactor: number;
   datasetRevision: string;
@@ -160,29 +125,35 @@ const candidateModel: Model = {
   tokenLogOdds: new Map(Object.entries(candidateArtifact.tokenLogOdds)),
 };
 
-const productionExternal = evaluate(
-  secondary.rows,
+const productionV1 = evaluate(
+  rows,
   (text) => predictText(text).scamProbability,
 );
 
-const candidateExternal = evaluate(
-  secondary.rows,
+const candidateV11 = evaluate(
+  rows,
   (text) => predict(candidateModel, text),
 );
 
-console.log(JSON.stringify({
-  candidateArtifact: {
-    modelVersion: candidateArtifact.modelVersion,
-    seedOversampleFactor: candidateArtifact.seedOversampleFactor,
-    primaryDatasetRevision: candidateArtifact.datasetRevision,
-  },
-  secondaryDataset: {
-    ...SECONDARY,
-    revision: secondary.revision,
-    rawRows: secondary.rawRows,
-    skippedRows: secondary.skippedRows,
-    uniqueUsableRows: secondary.rows.length,
-  },
-  productionV1OnIndependentDataset: productionExternal,
-  v1_1CandidateOnIndependentDataset: candidateExternal,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      dataset: {
+        source: "UCI SMS Spam Collection",
+        license: "CC BY 4.0",
+        rawRows,
+        skippedRows,
+        usableRows: rows.length,
+      },
+      candidateArtifact: {
+        modelVersion: candidateArtifact.modelVersion,
+        seedOversampleFactor: candidateArtifact.seedOversampleFactor,
+        primaryDatasetRevision: candidateArtifact.datasetRevision,
+      },
+      productionV1OnIndependentDataset: productionV1,
+      v1_1CandidateOnIndependentDataset: candidateV11,
+    },
+    null,
+    2,
+  ),
+);
