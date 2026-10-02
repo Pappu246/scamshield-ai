@@ -5,36 +5,76 @@ verified v1 production model remains unchanged until a candidate demonstrates
 better behavior on both the frozen seed cross-validation and an external
 benchmark.
 
-## External benchmark
+## Research tracks
+
+### External-data word-level Naive Bayes candidate
+
+The primary v1.1 candidate is a word-level Naive Bayes model trained from the
+external Indian spam/scam dataset plus repeated copies of the frozen
+85-example ScamShield seed set. The seed oversampling factor and classification
+threshold are selected from reproducible evaluation rules; the production
+classifier is never modified by the research scripts.
 
 Source dataset:
 
-- Hugging Face: `anmolshrivastav/scam-ham-india`
+- Hugging Face: anmolshrivastav/scam-ham-india
 - License: Apache-2.0
-- Split: `train`
-- Labels: `ham` / `spam`
+- Split: train
 - Reported size: 2,272 rows
+- Labels: ham / spam
 - The dataset mixes real-world Indian SMS with synthetic augmentation and is
   English-only.
 
-The benchmark maps `spam` → `scam` only to reuse the same binary metrics.
-This is deliberately described as an **external spam/scam benchmark**, not
+The benchmark maps spam -> scam only to reuse the same binary metrics.
+This is deliberately described as an external spam/scam benchmark, not
 real-world fraud accuracy.
 
-The benchmark records the Hugging Face dataset-server `x-revision` fingerprint
-and refuses to score a partial or internally changing dataset.
+The evaluation pins the dataset-server x-revision fingerprint and refuses
+partial or internally changing data.
 
-## Candidate model
+### Character n-gram experiment
 
-`classifierExperimental.ts` adds a character n-gram Naive Bayes signal to the
-existing word-level Naive Bayes probability. It uses a fixed 0.25 ensemble
-weight and is not wired into the production pipeline.
+src/lib/analyzer/classifierExperimental.ts contains a separate
+character n-gram Naive Bayes experiment. It is deliberately not wired into the
+production analyzer and is retained as a reproducible rejected candidate.
 
-Promotion criteria for a future v1.1 release:
+## Latest measured candidate results
 
-1. Candidate must improve or preserve recall on the frozen seed CV.
-2. Candidate should materially reduce false positives without creating a
-   meaningful recall regression.
-3. Candidate must be evaluated on the external benchmark before promotion.
-4. All existing production tests and type checks must remain green.
-5. The current v1 production model stays untouched until these checks are met.
+The latest successful end-to-end research run selected:
+
+- seed oversampling factor: 32x
+- classification threshold: 0.90
+- candidate model version: nb-scam-v1.1-external-seed-oversampled
+- dataset revision: 09afd479908c443e46be2629185ba8cd1de8abb8
+
+At that threshold, the candidate measured:
+
+- frozen 85-example seed 5-fold CV: 89.41% accuracy, 86.67% precision,
+  98.11% recall, 92.04% F1, 25.00% FPR
+- primary held-out slice from the same external dataset: 97.41% accuracy,
+  98.17% precision, 95.27% recall, 96.70% F1, 1.18% FPR
+- independent UCI SMS Spam Collection benchmark: 90.71% accuracy, 67.48%
+  precision, 59.17% recall, 63.05% F1, 4.41% FPR
+
+The UCI benchmark contains generic spam/ham SMS rather than a pure fraud corpus,
+so it is an independent spam benchmark, not a real-world scam-detection
+accuracy claim.
+
+The primary held-out slice comes from the same external dataset distribution
+used to train the candidate, so it can be optimistic. The independent UCI
+recall result is not high enough to justify silently replacing the production
+model.
+
+## Promotion criteria
+
+A future v1.1 promotion should satisfy all of the following:
+
+1. Candidate recall is preserved or improved on the frozen seed CV.
+2. False positives are materially reduced without a meaningful recall
+   regression.
+3. The candidate is checked on an independent external dataset.
+4. The production analyzer, scoring contract, and existing regression suite
+   remain stable.
+5. The evidence is strong enough to justify replacing the frozen v1 model.
+
+Until those gates are met, the research branch remains separate from main.
