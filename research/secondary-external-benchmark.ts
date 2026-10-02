@@ -13,14 +13,10 @@
  */
 
 import { computeMetrics, predictText, type ConfusionMatrix } from "../src/lib/analyzer/classifier";
-import { SEED_DATASET, type LabeledExample } from "../src/lib/analyzer/dataset";
 import { tokenize } from "../src/lib/analyzer/classifier";
+import { readFileSync } from "node:fs";
 
-const PRIMARY = {
-  dataset: "anmolshrivastav/scam-ham-india",
-  config: "default",
-  split: "train",
-};
+const CANDIDATE_ARTIFACT = "/tmp/scamshield-v11-candidate-model.json";
 const SECONDARY = {
   dataset: "ucirvine/sms_spam",
   config: "plain_text",
@@ -237,22 +233,19 @@ function evaluate(rows: Row[], scorer: (text: string) => number) {
   return computeMetrics(cm);
 }
 
-const primary = await loadDataset(PRIMARY);
 const secondary = await loadDataset(SECONDARY);
+const candidateArtifact = JSON.parse(readFileSync(CANDIDATE_ARTIFACT, "utf8")) as {
+  modelVersion: string;
+  seedOversampleFactor: number;
+  datasetRevision: string;
+  priorScam: number;
+  tokenLogOdds: Record<string, number>;
+};
 
-const primaryModel = train(primary.rows);
-
-const candidateTrainingRows = [
-  ...primary.rows,
-  ...Array.from({ length: SEED_OVERSAMPLE_FACTOR }, () =>
-    SEED_DATASET.map((row: LabeledExample) => ({
-      text: row.text,
-      label: row.label,
-    })),
-  ).flat(),
-];
-
-const candidateModel = train(candidateTrainingRows);
+const candidateModel: Model = {
+  priorScam: candidateArtifact.priorScam,
+  tokenLogOdds: new Map(Object.entries(candidateArtifact.tokenLogOdds)),
+};
 
 const productionExternal = evaluate(
   secondary.rows,
@@ -264,18 +257,11 @@ const candidateExternal = evaluate(
   (text) => predict(candidateModel, text),
 );
 
-const primarySanity = evaluate(
-  primary.rows,
-  (text) => predict(primaryModel, text),
-);
-
 console.log(JSON.stringify({
-  primaryDataset: {
-    ...PRIMARY,
-    revision: primary.revision,
-    rawRows: primary.rawRows,
-    skippedRows: primary.skippedRows,
-    uniqueUsableRows: primary.rows.length,
+  candidateArtifact: {
+    modelVersion: candidateArtifact.modelVersion,
+    seedOversampleFactor: candidateArtifact.seedOversampleFactor,
+    primaryDatasetRevision: candidateArtifact.datasetRevision,
   },
   secondaryDataset: {
     ...SECONDARY,
@@ -290,5 +276,4 @@ console.log(JSON.stringify({
   },
   productionV1OnIndependentDataset: productionExternal,
   v1_1CandidateOnIndependentDataset: candidateExternal,
-  primaryDataSanity: primarySanity,
 }, null, 2));
