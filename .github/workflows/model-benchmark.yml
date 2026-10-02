@@ -41,3 +41,6 @@ jobs:
 
       - name: Seed oversampling sweep
         run: bun research/seed-oversampling-sweep.ts
+
+      - name: Independent external benchmark
+        run: bun research/secondary-external-benchmark.ts
