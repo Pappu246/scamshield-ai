@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   benchmark:
@@ -56,6 +56,13 @@ jobs:
             git commit -m "research: capture v1.1 candidate artifact [skip ci]"
             git push
           fi
+
+      - name: Upload v1.1 candidate artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scamshield-v1-1-model
+          path: /tmp/scamshield-v11-candidate-model.json
+          if-no-files-found: error
 
       - name: Download UCI SMS benchmark
         run: |
