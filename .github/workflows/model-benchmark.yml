@@ -45,6 +45,14 @@ jobs:
       - name: Seed error audit
         run: bun research/seed-error-audit.ts
 
+      - name: Download UCI SMS benchmark
+        run: |
+          curl -L --fail --retry 5 --retry-delay 2 \
+            https://archive.ics.uci.edu/ml/machine-learning-databases/00228/smsspamcollection.zip \
+            -o /tmp/smsspamcollection.zip
+          unzip -p /tmp/smsspamcollection.zip SMSSpamCollection > /tmp/SMSSpamCollection
+          test "$(wc -l < /tmp/SMSSpamCollection)" -eq 5574
+
       - name: Factor-32 threshold sweep
         run: bun research/factor32-threshold-sweep.ts
 
@@ -54,14 +62,6 @@ jobs:
           name: scamshield-v1-1-model
           path: /tmp/scamshield-v11-candidate-model.json
           if-no-files-found: error
-
-      - name: Download UCI SMS benchmark
-        run: |
-          curl -L --fail --retry 5 --retry-delay 2 \
-            https://archive.ics.uci.edu/ml/machine-learning-databases/00228/smsspamcollection.zip \
-            -o /tmp/smsspamcollection.zip
-          unzip -p /tmp/smsspamcollection.zip SMSSpamCollection > /tmp/SMSSpamCollection
-          test "$(wc -l < /tmp/SMSSpamCollection)" -eq 5574
 
       - name: Independent external benchmark
         run: bun research/secondary-external-benchmark.ts
