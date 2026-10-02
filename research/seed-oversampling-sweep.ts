@@ -20,7 +20,7 @@ const DATASET = "anmolshrivastav/scam-ham-india";
 const ENDPOINT = "https://datasets-server.huggingface.co/rows";
 const PAGE_SIZE = 100;
 const FACTORS = [1, 2, 4, 8, 16, 32];
-const MAX_ARTIFACT_TOKENS = 12_000;
+const MAX_ARTIFACT_TOKENS = 1_000;
 
 interface Row {
   text: string;
