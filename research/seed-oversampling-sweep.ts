@@ -20,6 +20,7 @@ const DATASET = "anmolshrivastav/scam-ham-india";
 const ENDPOINT = "https://datasets-server.huggingface.co/rows";
 const PAGE_SIZE = 100;
 const FACTORS = [1, 2, 4, 8, 16, 32];
+const MAX_ARTIFACT_TOKENS = 12_000;
 
 interface Row {
   text: string;
@@ -239,6 +240,10 @@ const externalHeldOut = evaluate(
   (text) => predict(finalModel, text),
 );
 
+const compactEntries = [...finalModel.tokenLogOdds.entries()]
+  .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+  .slice(0, MAX_ARTIFACT_TOKENS);
+
 writeFileSync(
   "/tmp/scamshield-v11-candidate-model.json",
   JSON.stringify({
@@ -246,7 +251,8 @@ writeFileSync(
     seedOversampleFactor: selected.factor,
     datasetRevision: revision,
     priorScam: finalModel.priorScam,
-    tokenLogOdds: Object.fromEntries(finalModel.tokenLogOdds),
+    artifactTokenCount: compactEntries.length,
+    tokenLogOdds: Object.fromEntries(compactEntries),
   }),
 );
 
