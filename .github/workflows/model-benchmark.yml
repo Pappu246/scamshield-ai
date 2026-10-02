@@ -45,6 +45,9 @@ jobs:
       - name: Seed error audit
         run: bun research/seed-error-audit.ts
 
+      - name: Contextual legitimacy relief audit
+        run: bun research/contextual-relief-audit.ts
+
       - name: Download UCI SMS benchmark
         run: |
           curl -L --fail --retry 5 --retry-delay 2 \
