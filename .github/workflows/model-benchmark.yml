@@ -56,9 +56,6 @@ jobs:
           unzip -p /tmp/smsspamcollection.zip SMSSpamCollection > /tmp/SMSSpamCollection
           test "$(wc -l < /tmp/SMSSpamCollection)" -eq 5574
 
-      - name: Ensemble weight and threshold sweep
-        run: bun research/ensemble-sweep.ts
-
       - name: Upload v1.1 candidate artifact
         uses: actions/upload-artifact@v4
         with:
