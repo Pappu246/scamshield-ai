@@ -18,7 +18,7 @@ type Row = { message: string; label: Label; language: string };
 type Candidate = {
   priorScam: number;
   classificationThreshold: number;
-  ensembleWeight: number;
+  ensembleWeight?: number;
   tokenLogOdds: Record<string, number>;
 };
 
@@ -135,7 +135,8 @@ const candidateByLanguage = Object.fromEntries(
     return [language, { count: subset.length, metrics: evaluate(subset, (row) => {
       const v1 = predictText(row.message).scamProbability;
       const v11 = candidateProbability(candidate, row.message);
-      return v1 * (1 - candidate.ensembleWeight) + v11 * candidate.ensembleWeight;
+      const weight = candidate.ensembleWeight ?? 1;
+      return v1 * (1 - weight) + v11 * weight;
     }, candidate.classificationThreshold) }];
   }),
 );
@@ -143,7 +144,8 @@ const candidateByLanguage = Object.fromEntries(
 const candidateOverall = evaluate(rows, (row) => {
   const v1 = predictText(row.message).scamProbability;
   const v11 = candidateProbability(candidate, row.message);
-  return v1 * (1 - candidate.ensembleWeight) + v11 * candidate.ensembleWeight;
+  const weight = candidate.ensembleWeight ?? 1;
+  return v1 * (1 - weight) + v11 * weight;
 }, candidate.classificationThreshold);
 
 console.log(JSON.stringify({
