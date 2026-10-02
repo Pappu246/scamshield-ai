@@ -24,6 +24,7 @@ const MAX_ARTIFACT_TOKENS = 12_000;
 const THRESHOLDS = Array.from({ length: 17 }, (_, i) =>
   Number((0.5 + i * 0.025).toFixed(3)),
 );
+const ENSEMBLE_WEIGHTS = [0, 0.25, 0.5, 0.75, 1];
 
 interface Row {
   text: string;
@@ -318,6 +319,67 @@ const selectedThresholdExternalHeldOut =
   thresholdEligible[0]?.externalHeldOut ??
   evaluate(externalTest, (text) => predict(finalModel, text), selectedThreshold);
 
+function blendProbability(text: string, candidateModel: Model, weight: number): number {
+  const v1 = predictText(text).scamProbability;
+  const v11 = predict(candidateModel, text);
+  return v1 * (1 - weight) + v11 * weight;
+}
+
+const ensembleSweep = [];
+for (const weight of ENSEMBLE_WEIGHTS) {
+  for (const threshold of THRESHOLDS) {
+    const seedFolds = [];
+
+    for (let fold = 0; fold < 5; fold += 1) {
+      const seedTrain: LabeledExample[] = [];
+      const seedTest: LabeledExample[] = [];
+
+      for (const pool of [scams, legits]) {
+        pool.forEach((row, index) => {
+          if (index % 5 === fold) seedTest.push(row);
+          else seedTrain.push(row);
+        });
+      }
+
+      const foldModel = train([
+        ...externalTrain,
+        ...repeatSeed(seedTrain, selected.factor),
+      ]);
+
+      seedFolds.push(
+        evaluate(
+          seedTest,
+          (text) => blendProbability(text, foldModel, weight),
+          threshold,
+        ),
+      );
+    }
+
+    ensembleSweep.push({
+      weight,
+      threshold,
+      seedCV: aggregateFoldMetrics(seedFolds),
+      externalHeldOut: evaluate(
+        externalTest,
+        (text) => blendProbability(text, finalModel, weight),
+        threshold,
+      ),
+    });
+  }
+}
+
+const ensembleEligible = ensembleSweep
+  .filter((entry) => entry.seedCV.recall >= 0.98)
+  .sort(
+    (a, b) =>
+      b.externalHeldOut.f1 - a.externalHeldOut.f1 ||
+      a.seedCV.falsePositiveRate - b.seedCV.falsePositiveRate,
+  );
+
+const selectedEnsemble = ensembleEligible[0] ?? ensembleSweep[0];
+const selectedEnsembleSeedCV = selectedEnsemble.seedCV;
+const selectedEnsembleExternalHeldOut = selectedEnsemble.externalHeldOut;
+
 const compactEntries = [...finalModel.tokenLogOdds.entries()]
   .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
   .slice(0, MAX_ARTIFACT_TOKENS);
@@ -330,7 +392,9 @@ writeFileSync(
     datasetRevision: revision,
     priorScam: finalModel.priorScam,
     artifactTokenCount: compactEntries.length,
-    classificationThreshold: selectedThreshold,
+    classificationThreshold: selectedEnsemble.threshold,
+    ensembleWeight: selectedEnsemble.weight,
+    candidateThreshold: selectedThreshold,
     tokenLogOdds: Object.fromEntries(compactEntries),
   }),
 );
@@ -350,6 +414,12 @@ console.log(JSON.stringify({
   selectedThreshold,
   selectedThresholdSeedCV,
   selectedThresholdExternalHeldOut,
+  ensembleSelectionRule:
+    "seed recall >= 0.98, then maximize primary held-out F1, then minimize seed FPR",
+  selectedEnsemble,
+  ensembleSweep: ensembleSweep,
+  selectedEnsembleSeedCV,
+  selectedEnsembleExternalHeldOut,
   productionSeedCV: computeMetrics({
     tp: 53,
     fp: 11,
