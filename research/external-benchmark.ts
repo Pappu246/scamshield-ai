@@ -44,23 +44,32 @@ async function fetchPage(offset: number) {
   url.searchParams.set("offset", String(offset));
   url.searchParams.set("length", String(PAGE_SIZE));
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Dataset request failed: HTTP ${response.status} at offset ${offset}`);
-  }
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const response = await fetch(url);
 
-  const revision = response.headers.get("x-revision");
-  const payload = (await response.json()) as {
+    if (response.ok) {
+      const revision = response.headers.get("x-revision");
+      const payload = (await response.json()) as {
     rows: Array<{ row: { text?: unknown; label?: unknown } }>;
     num_rows_total?: number;
     partial?: boolean;
   };
 
-  if (payload.partial) {
-    throw new Error("Hugging Face returned a partial dataset slice; refusing to score it.");
+      if (payload.partial) {
+        throw new Error("Hugging Face returned a partial dataset slice; refusing to score it.");
+      }
+
+      return { revision, payload };
+    }
+
+    if (response.status !== 502 && response.status !== 503 && response.status !== 504) {
+      throw new Error(`Dataset request failed: HTTP ${response.status} at offset ${offset}`);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
   }
 
-  return { revision, payload };
+  throw new Error(`Dataset server unavailable at offset ${offset} after retries`);
 }
 
 async function loadDataset(): Promise<{
