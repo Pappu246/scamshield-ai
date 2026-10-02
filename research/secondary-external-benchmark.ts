@@ -89,11 +89,12 @@ function predict(model: Model, text: string): number {
 function evaluate(
   rows: Row[],
   scorer: (text: string) => number,
+  threshold = 0.5,
 ) {
   const cm: ConfusionMatrix = { tp: 0, fp: 0, fn: 0, tn: 0 };
 
   for (const row of rows) {
-    const predictedScam = scorer(row.text) >= 0.5;
+    const predictedScam = scorer(row.text) >= threshold;
 
     if (row.label === "scam") {
       if (predictedScam) cm.tp += 1;
@@ -117,6 +118,7 @@ const candidateArtifact = JSON.parse(
   seedOversampleFactor: number;
   datasetRevision: string;
   priorScam: number;
+  classificationThreshold: number;
   tokenLogOdds: Record<string, number>;
 };
 
@@ -128,11 +130,13 @@ const candidateModel: Model = {
 const productionV1 = evaluate(
   rows,
   (text) => predictText(text).scamProbability,
+  0.5,
 );
 
 const candidateV11 = evaluate(
   rows,
   (text) => predict(candidateModel, text),
+  candidateArtifact.classificationThreshold,
 );
 
 console.log(
