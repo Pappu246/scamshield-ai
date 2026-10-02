@@ -77,11 +77,18 @@ async function fetchPage(
       return { revision, payload };
     }
 
-    if (response.status !== 502 && response.status !== 503 && response.status !== 504) {
+    if (
+      response.status !== 429 &&
+      response.status !== 502 &&
+      response.status !== 503 &&
+      response.status !== 504
+    ) {
       throw new Error(`Dataset HTTP ${response.status} for ${dataset} at offset ${offset}`);
     }
 
-    await sleep(attempt * 1000);
+    const retryAfter = Number(response.headers.get("retry-after") ?? "0");
+    const delayMs = Math.max(attempt * 1500, Number.isFinite(retryAfter) ? retryAfter * 1000 : 0);
+    await sleep(Math.min(delayMs, 15_000));
   }
 
   throw new Error(`Dataset server remained unavailable for ${dataset} at offset ${offset}`);
