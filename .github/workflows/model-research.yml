@@ -68,7 +68,7 @@ jobs:
 
       - name: Typecheck research files
         run: |
-          bunx tsc --noEmit --moduleResolution bundler --target ES2022 \
+          bunx tsc --noEmit --module ESNext --moduleResolution bundler --target ES2022 \
             research/seed-oversampling-sweep.ts \
             research/seed-error-audit.ts \
             research/contextual-relief-audit.ts \
