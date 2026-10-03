@@ -19,7 +19,7 @@ import {
 import { readFileSync } from "node:fs";
 
 const DATASET = "ysangam/Indian_Cyber_Scam_PhoneCall_Hinglish_Dataset";
-const DATASET_REVISION = "c1baf5a";
+const DATASET_REVISION = "8e80dd576610feede6a4c456f95fbd6b8ac13c2c";
 const DATASET_URL =
   `https://huggingface.co/datasets/${DATASET}/resolve/${DATASET_REVISION}/India_Cyber_Scam_Hinglish_Dataset.csv`;
 const EXPECTED_ROWS = 10_000;
