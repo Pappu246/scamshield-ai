@@ -81,15 +81,28 @@ This is a small curated smoke benchmark. It supports further multilingual
 testing but is not sufficient by itself to replace the production model.
 
 ## Larger independent Indian communication benchmark
-
 A 10,000-row external Indian scam-communication corpus is now wired as an
 evaluation-only gate in `research/indian-communication-benchmark.ts`.
 The corpus includes call/chat/SMS-style communication, so any result will be
 reported as a communication benchmark rather than a direct real-world
-SMS-fraud accuracy estimate. The source file is pinned to revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`
-and is not used for training or threshold tuning.
+SMS-fraud accuracy estimate. The source file is pinned to revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`.
 
-No score is claimed until the GitHub Actions run completes successfully.
+A successful end-to-end Actions run (`37148264682`) loaded all 10,000 rows
+and measured:
+
+| Metric | Production v1 | Candidate v1.1 |
+|---|---:|---:|
+| Accuracy | 85.09% | 86.62% |
+| Precision | 80.62% | 85.71% |
+| Recall | 92.38% | 87.90% |
+| F1 | 86.10% | 86.79% |
+| False-positive rate | 22.20% | 14.66% |
+
+That successful run used an earlier data-file revision (`c1baf5a`). The
+research branch has since moved to the current dataset repository revision
+`8e80dd576610feede6a4c456f95fbd6b8ac13c2c`; a fresh run at that pin is still
+queued. Therefore these figures are recorded as observed benchmark evidence,
+not as a current-pin CI PASS.
 
 ## Current gate
 
