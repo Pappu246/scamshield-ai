@@ -210,8 +210,20 @@ const productionScore = (row: Row) =>
 const candidateScore = (row: Row) =>
   candidateProbability(candidate, row.text);
 
+const ensembleWeight = candidate.ensembleWeight ?? 1;
+if (ensembleWeight < 0 || ensembleWeight > 1) {
+  throw new Error(`Invalid candidate ensemble weight: ${ensembleWeight}`);
+}
+
+const selectedScore = (row: Row) =>
+  productionScore(row) * (1 - ensembleWeight) +
+  candidateScore(row) * ensembleWeight;
+
 const candidateThreshold =
-  candidate.candidateThreshold ?? candidate.classificationThreshold;
+  candidate.classificationThreshold ?? candidate.candidateThreshold;
+if (candidateThreshold === undefined || candidateThreshold < 0 || candidateThreshold > 1) {
+  throw new Error(`Invalid candidate classification threshold: ${candidateThreshold}`);
+}
 
 const languages = [...new Set(rows.map((row) => row.language))].sort();
 
@@ -228,7 +240,7 @@ console.log(
       candidateThreshold,
       candidateEnsembleWeight: candidate.ensembleWeight,
       productionOverall: evaluate(rows, productionScore, 0.5),
-      candidateOverall: evaluate(rows, candidateScore, candidateThreshold),
+      candidateOverall: evaluate(rows, selectedScore, candidateThreshold),
       productionByLanguage: Object.fromEntries(
         languages.map((language) => {
           const subset = rows.filter((row) => row.language === language);
@@ -245,7 +257,7 @@ console.log(
             language,
             {
               count: subset.length,
-              metrics: evaluate(subset, candidateScore, candidateThreshold),
+              metrics: evaluate(subset, selectedScore, candidateThreshold),
             },
           ];
         }),
