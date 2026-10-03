@@ -5,9 +5,8 @@
  * on a small Indian Hindi/Hinglish/English scam-message dataset.
  *
  * The benchmark is evaluation-only: it never changes production code.
- * The dataset is loaded through Hugging Face's dataset-server API rather than
- * a raw bucket URL so the workflow uses a stable, machine-readable endpoint
- * and can record the served revision fingerprint.
+ * The source is the public Hugging Face dataset repository; the run validates
+ * the exact 120-row CSV schema before scoring and records the source revision.
  */
 
 import {
@@ -19,11 +18,10 @@ import {
 import { readFileSync } from "node:fs";
 
 const DATASET = "karanverma19/Indian_Multilingual_Scam_Message_Dataset";
-const CONFIG = "default";
-const SPLIT = "train";
-const PAGE_SIZE = 100;
+const DATASET_REVISION = "7019a60";
+const DATASET_URL =
+  `https://huggingface.co/datasets/${DATASET}/resolve/${DATASET_REVISION}/ultra_premium_scam_dataset.csv`;
 const EXPECTED_ROWS = 120;
-const ENDPOINT = "https://datasets-server.huggingface.co/rows";
 const ARTIFACT_PATH = "/tmp/scamshield-v11-candidate-model.json";
 
 type Label = "scam" | "legit";
@@ -36,157 +34,143 @@ type Candidate = {
   tokenLogOdds: Record<string, number>;
 };
 
-async function fetchPage(offset: number) {
-  const url = new URL(ENDPOINT);
-  url.searchParams.set("dataset", DATASET);
-  url.searchParams.set("config", CONFIG);
-  url.searchParams.set("split", SPLIT);
-  url.searchParams.set("offset", String(offset));
-  url.searchParams.set("length", String(PAGE_SIZE));
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
 
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
-    const response = await fetch(url);
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const next = text[i + 1];
 
-    if (response.ok) {
-      const payload = (await response.json()) as {
-        rows: Array<{
-          row: {
-            message?: unknown;
-            label?: unknown;
-            language?: unknown;
-          };
-        }>;
-        num_rows_total?: number;
-        partial?: boolean;
-      };
-
-      if (payload.partial) {
-        throw new Error("Hugging Face returned a partial dataset slice.");
+    if (quoted) {
+      if (ch === '"' && next === '"') {
+        cell += '"';
+        i += 1;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        cell += ch;
       }
-
-      return {
-        revision: response.headers.get("x-revision"),
-        payload,
-      };
+      continue;
     }
 
-    if (![502, 503, 504].includes(response.status)) {
-      throw new Error(
-        `Dataset request failed: HTTP ${response.status} at offset ${offset}`,
-      );
+    if (ch === '"' && cell.length === 0) {
+      quoted = true;
+      continue;
     }
-
-    await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+    if (ch === ",") {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+    if (ch === "\n") {
+      row.push(cell.replace(/\r$/, ""));
+      rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+    cell += ch;
   }
 
-  throw new Error(`Dataset server unavailable at offset ${offset} after retries`);
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell.replace(/\r$/, ""));
+    rows.push(row);
+  }
+
+  return rows;
 }
 
-async function loadRows(): Promise<{
-  rows: Row[];
-  revision: string;
-  rawRows: number;
-}> {
-  const rows: Row[] = [];
-  let expectedTotal: number | undefined;
-  let datasetRevision: string | undefined;
-  let rawRows = 0;
+async function loadRows(): Promise<Row[]> {
+  let lastStatus = 0;
 
-  for (let offset = 0; ; offset += PAGE_SIZE) {
-    const { revision, payload } = await fetchPage(offset);
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    const response = await fetch(DATASET_URL);
+    lastStatus = response.status;
 
-    if (!revision) {
-      throw new Error("Dataset server did not provide an x-revision fingerprint.");
+    if (response.ok) {
+      const csv = await response.text();
+      const parsed = parseCsv(csv.replace(/^\uFEFF/, ""));
+      const header = parsed.shift();
+
+      if (!header) throw new Error("Multilingual dataset is empty.");
+
+      const index = new Map(
+        header.map((name, i) => [name.trim().toLowerCase(), i]),
+      );
+      const messageIndex = index.get("message");
+      const labelIndex = index.get("label");
+      const languageIndex = index.get("language");
+
+      if (
+        messageIndex === undefined ||
+        labelIndex === undefined ||
+        languageIndex === undefined
+      ) {
+        throw new Error(
+          "Dataset schema is missing message/label/language columns.",
+        );
+      }
+
+      const rows: Row[] = parsed.flatMap((cells) => {
+        const message = (cells[messageIndex] ?? "").trim();
+        const rawLabel = (cells[labelIndex] ?? "").trim().toLowerCase();
+        const language = (cells[languageIndex] ?? "").trim();
+
+        const label =
+          rawLabel === "scam"
+            ? "scam"
+            : rawLabel === "legit"
+              ? "legit"
+              : null;
+
+        return message && language && label
+          ? [{ message, label, language }]
+          : [];
+      });
+
+      if (rows.length !== EXPECTED_ROWS) {
+        throw new Error(
+          `Expected ${EXPECTED_ROWS} usable rows, received ${rows.length}.`,
+        );
+      }
+
+      const languages = new Set(rows.map((row) => row.language.toLowerCase()));
+      for (const family of ["english", "hindi", "hinglish"]) {
+        if (![...languages].some((language) => language.includes(family))) {
+          throw new Error(
+            `Multilingual dataset is missing the ${family} language family.`,
+          );
+        }
+      }
+
+      return rows;
     }
 
-    if (datasetRevision && datasetRevision !== revision) {
+    if (![429, 502, 503, 504].includes(response.status)) {
       throw new Error(
-        `Dataset revision changed mid-run: ${datasetRevision} -> ${revision}`,
+        `Multilingual dataset request failed: HTTP ${response.status}`,
       );
     }
-    datasetRevision ??= revision;
 
-    expectedTotal ??= payload.num_rows_total;
-
-    for (const entry of payload.rows ?? []) {
-      rawRows += 1;
-
-      const message =
-        typeof entry.row.message === "string" ? entry.row.message.trim() : "";
-      const rawLabel =
-        typeof entry.row.label === "string"
-          ? entry.row.label.trim().toLowerCase()
-          : "";
-      const language =
-        typeof entry.row.language === "string"
-          ? entry.row.language.trim()
-          : "";
-
-      const label =
-        rawLabel === "scam"
-          ? "scam"
-          : rawLabel === "legit"
-            ? "legit"
-            : null;
-
-      if (message && language && label) {
-        rows.push({ message, label, language });
-      }
-    }
-
-    if (
-      rawRows >= (expectedTotal ?? 0) ||
-      (payload.rows ?? []).length < PAGE_SIZE
-    ) {
-      break;
-    }
+    const retryAfter = Number(response.headers.get("retry-after") ?? "");
+    const delayMs =
+      Number.isFinite(retryAfter) && retryAfter > 0
+        ? Math.min(15_000, retryAfter * 1000)
+        : attempt * 1500;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
-  if (!datasetRevision) {
-    throw new Error("No dataset revision was observed.");
-  }
-
-  if (expectedTotal !== EXPECTED_ROWS) {
-    throw new Error(
-      `Expected ${EXPECTED_ROWS} rows from ${DATASET}; dataset-server reports ${expectedTotal ?? "unknown"}.`,
-    );
-  }
-
-  if (rawRows !== expectedTotal) {
-    throw new Error(
-      `Fetched ${rawRows} raw rows but dataset reports ${expectedTotal} total rows.`,
-    );
-  }
-
-  if (rows.length !== EXPECTED_ROWS) {
-    throw new Error(
-      `Expected ${EXPECTED_ROWS} usable multilingual rows, received ${rows.length}.`,
-    );
-  }
-
-  const languages = new Set(rows.map((row) => row.language.toLowerCase()));
-  const requiredFamilies = ["english", "hindi", "hinglish"];
-  const missingFamilies = requiredFamilies.filter(
-    (family) => ![...languages].some((language) => language.includes(family)),
+  throw new Error(
+    `Multilingual dataset unavailable after retries: HTTP ${lastStatus}`,
   );
-
-  if (missingFamilies.length > 0) {
-    throw new Error(
-      `Multilingual smoke dataset is missing language families: ${missingFamilies.join(", ")}`,
-    );
-  }
-
-  return {
-    rows,
-    revision: datasetRevision,
-    rawRows,
-  };
 }
 
 function candidateProbability(candidate: Candidate, text: string): number {
-  // The candidate artifact was trained with the production tokenizer, so use
-  // exactly the same normalization/tokenization path here. This is essential
-  // for Hindi/Hinglish normalization parity.
+  // Match the candidate-training tokenizer exactly so Hindi/Hinglish uses the
+  // same normalization/transliteration path as production.
   let logOdds = Math.log(
     candidate.priorScam / Math.max(1e-9, 1 - candidate.priorScam),
   );
@@ -221,8 +205,7 @@ function evaluate(
   return computeMetrics(matrix);
 }
 
-const { rows, revision, rawRows } = await loadRows();
-
+const rows = await loadRows();
 const candidate = JSON.parse(
   readFileSync(ARTIFACT_PATH, "utf8"),
 ) as Candidate;
@@ -251,10 +234,7 @@ const productionByLanguage = Object.fromEntries(
     const subset = rows.filter((row) => row.language === language);
     return [
       language,
-      {
-        count: subset.length,
-        metrics: evaluate(subset, productionScore, 0.5),
-      },
+      { count: subset.length, metrics: evaluate(subset, productionScore, 0.5) },
     ];
   }),
 );
@@ -280,15 +260,12 @@ console.log(
   JSON.stringify(
     {
       dataset: DATASET,
-      config: CONFIG,
-      split: SPLIT,
-      revision,
-      rawRows,
+      revision: DATASET_REVISION,
+      sourceUrl: DATASET_URL,
       rows: rows.length,
       expectedRows: EXPECTED_ROWS,
       languages,
-      candidateModelVersion:
-        "nb-scam-v1.1-external-seed-oversampled",
+      candidateModelVersion: "nb-scam-v1.1-external-seed-oversampled",
       candidateThreshold: candidate.classificationThreshold,
       candidateEnsembleWeight: candidate.ensembleWeight,
       productionOverall,
