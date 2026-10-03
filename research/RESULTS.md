@@ -86,7 +86,7 @@ A 10,000-row external Indian scam-communication corpus is now wired as an
 evaluation-only gate in `research/indian-communication-benchmark.ts`.
 The corpus includes call/chat/SMS-style communication, so any result will be
 reported as a communication benchmark rather than a direct real-world
-SMS-fraud accuracy estimate. The source file is pinned to revision `c1baf5a`
+SMS-fraud accuracy estimate. The source file is pinned to revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`
 and is not used for training or threshold tuning.
 
 No score is claimed until the GitHub Actions run completes successfully.
