@@ -66,6 +66,9 @@ jobs:
       - name: Multilingual Hindi Hinglish smoke benchmark
         run: bun research/multilingual-benchmark.ts
 
+      - name: Independent Indian scam communication benchmark
+        run: bun research/indian-communication-benchmark.ts
+
       - name: Typecheck research files
         run: |
           bunx tsc --noEmit --module ESNext --moduleResolution bundler --target ES2022 \
