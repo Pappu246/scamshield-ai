@@ -1,0 +1,39 @@
+name: ScamShield v1.1 branch CI
+
+on:
+  push:
+    branches:
+      - v1-1-model-improvement
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Production regression tests
+        run: bun run test
+
+      - name: Analyzer test typecheck
+        run: bun run typecheck:tests
+
+      - name: Production build
+        run: bun run build
+
+      - name: Lint
+        run: bun run lint
