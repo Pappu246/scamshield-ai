@@ -119,6 +119,7 @@ const candidateArtifact = JSON.parse(
   datasetRevision: string;
   priorScam: number;
   classificationThreshold: number;
+  candidateThreshold?: number;
   ensembleWeight?: number;
   tokenLogOdds: Record<string, number>;
 };
