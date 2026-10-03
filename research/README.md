@@ -118,4 +118,4 @@ Source dataset:
 
 `research/indian-communication-benchmark.ts` evaluates the frozen v1 model and v1.1 candidate on a separate 10,000-row Indian scam-communication corpus. It is intentionally evaluation-only and is treated as an external communication benchmark because the corpus includes SMS, chat, and call-transcript-style records. It is not a direct real-world fraud accuracy claim.
 
-The workflow pins the corpus file to revision `c1baf5a` and refuses incomplete or malformed data. Results are required before any candidate promotion decision.
+The workflow pins the corpus file to revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c` and refuses incomplete or malformed data. Results are required before any candidate promotion decision.
