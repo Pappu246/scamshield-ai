@@ -119,3 +119,24 @@ Source dataset:
 `research/indian-communication-benchmark.ts` evaluates the frozen v1 model and v1.1 candidate on a separate 10,000-row Indian scam-communication corpus. It is intentionally evaluation-only and is treated as an external communication benchmark because the corpus includes SMS, chat, and call-transcript-style records. It is not a direct real-world fraud accuracy claim.
 
 The workflow pins the corpus file to revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c` and refuses incomplete or malformed data. Results are required before any candidate promotion decision.
+
+
+## Larger independent Indian communication benchmark — observed result
+
+A prior successful end-to-end Actions run (`37148264682`) loaded all 10,000 rows
+from `ysangam/Indian_Cyber_Scam_PhoneCall_Hinglish_Dataset` and measured the
+following external communication benchmark:
+
+| Metric | Production v1 | Candidate v1.1 |
+|---|---:|---:|
+| Accuracy | 85.09% | 86.62% |
+| Precision | 80.62% | 85.71% |
+| Recall | 92.38% | 87.90% |
+| F1 | 86.10% | 86.79% |
+| False-positive rate | 22.20% | 14.66% |
+
+The successful run used an earlier data-file revision (`c1baf5a`). The branch
+now pins the dataset repository to `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`,
+so the figures above are retained as observed evidence rather than presented
+as a current-pin CI PASS. A fresh run at the updated pin is required before
+using the benchmark as a completed promotion gate.
