@@ -56,8 +56,43 @@ has not been wired into the production analyzer.
 weight did not improve the frozen seed benchmark enough to justify replacing
 the production word-level model.
 
-## Next research gate
+## Multilingual Hindi/Hinglish smoke benchmark
 
-The next useful evidence is a larger hard-negative and Hindi/Hinglish
-evaluation set that is kept separate from training, followed by an independent
-holdout check before any production promotion.
+Dataset: `karanverma19/Indian_Multilingual_Scam_Message_Dataset`, pinned to
+file revision `7019a60`, 120 rows, Apache-2.0.
+
+| Metric | Production v1 | Candidate v1.1 |
+|---|---:|---:|
+| Accuracy | 86.67% | 88.33% |
+| Precision | 78.95% | 91.07% |
+| Recall | 100.00% | 85.00% |
+| F1 | 88.24% | 87.93% |
+| False-positive rate | 26.67% | 8.33% |
+
+Candidate per-language recall:
+
+| Language | Rows | Recall | False-positive rate |
+|---|---:|---:|---:|
+| English | 41 | 90.91% | 5.26% |
+| Hindi | 37 | 71.43% | 0.00% |
+| Hinglish | 42 | 94.12% | 16.00% |
+
+This is a small curated smoke benchmark. It supports further multilingual
+testing but is not sufficient by itself to replace the production model.
+
+## Larger independent Indian communication benchmark
+
+A 10,000-row external Indian scam-communication corpus is now wired as an
+evaluation-only gate in `research/indian-communication-benchmark.ts`.
+The corpus includes call/chat/SMS-style communication, so any result will be
+reported as a communication benchmark rather than a direct real-world
+SMS-fraud accuracy estimate. The source file is pinned to revision `c1baf5a`
+and is not used for training or threshold tuning.
+
+No score is claimed until the GitHub Actions run completes successfully.
+
+## Current gate
+
+The v1.1 candidate remains research-only. Independent UCI recall remains the
+main blocker to silent production replacement, and the larger Hindi/Hinglish
+communication benchmark must complete before promotion is reconsidered.
