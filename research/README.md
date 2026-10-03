@@ -91,7 +91,31 @@ the dataset is small and curated, so it is not a replacement for a larger
 independent multilingual holdout.
 
 The manual research workflow now includes this benchmark after candidate
-generation. Its latest run has not yet been executed after this harness was
-added, so no multilingual benchmark score is claimed yet.
+generation. The harness pins the standard Hugging Face dataset repository to
+file revision `7019a60`, avoiding the earlier bucket raw-path instability.
 
-Source: `bhoomee/Indian_Multilingual_Scam_Message_Dataset-bucket`.
+Measured on the 120-row smoke set:
+
+- production v1: 86.67% accuracy, 78.95% precision, 100.00% recall, 88.24% F1,
+  26.67% false-positive rate
+- candidate v1.1: 88.33% accuracy, 91.07% precision, 85.00% recall, 87.93% F1,
+  8.33% false-positive rate
+
+Per-language candidate recall is 90.91% on English, 71.43% on Hindi, and
+94.12% on Hinglish. The smoke set is small and curated, so these numbers are
+diagnostic only.
+
+Source dataset:
+
+- Hugging Face: karanverma19/Indian_Multilingual_Scam_Message_Dataset
+- File: ultra_premium_scam_dataset.csv
+- Pinned file revision: 7019a60
+- Rows: 120
+- License: Apache-2.0
+- Fields: message, label, reason, domain, language
+
+### Larger independent Indian communication benchmark
+
+`research/indian-communication-benchmark.ts` evaluates the frozen v1 model and v1.1 candidate on a separate 10,000-row Indian scam-communication corpus. It is intentionally evaluation-only and is treated as an external communication benchmark because the corpus includes SMS, chat, and call-transcript-style records. It is not a direct real-world fraud accuracy claim.
+
+The workflow pins the corpus file to revision `c1baf5a` and refuses incomplete or malformed data. Results are required before any candidate promotion decision.
