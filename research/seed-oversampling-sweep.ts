@@ -303,7 +303,7 @@ const thresholdEligible = thresholdSweep
   .filter((entry) => entry.seedCV.recall >= 0.98)
   .sort(
     (a, b) =>
-      b.externalHeldOut.f1 - a.externalHeldOut.f1 ||
+      b.seedCV.f1 - a.seedCV.f1 ||
       a.seedCV.falsePositiveRate - b.seedCV.falsePositiveRate,
   );
 
@@ -372,7 +372,7 @@ const ensembleEligible = ensembleSweep
   .filter((entry) => entry.seedCV.recall >= 0.98)
   .sort(
     (a, b) =>
-      b.externalHeldOut.f1 - a.externalHeldOut.f1 ||
+      b.seedCV.f1 - a.seedCV.f1 ||
       a.seedCV.falsePositiveRate - b.seedCV.falsePositiveRate,
   );
 
@@ -407,7 +407,7 @@ console.log(JSON.stringify({
   seedRows: SEED_DATASET.length,
   sweep,
   selectionRule:
-    "factor: recall >= 0.98, then minimize seed FPR, then maximize F1; threshold: seed recall >= 0.98, then maximize primary held-out F1, then minimize seed FPR",
+    "factor: recall >= 0.98, then minimize seed FPR, then maximize F1; threshold: seed recall >= 0.98, then maximize seed CV F1, then minimize seed FPR; external held-out is report-only",
   selectedFactor: selected.factor,
   selectedSeedCV: selected.seedCV,
   thresholdSweep,
@@ -415,7 +415,7 @@ console.log(JSON.stringify({
   selectedThresholdSeedCV,
   selectedThresholdExternalHeldOut,
   ensembleSelectionRule:
-    "seed recall >= 0.98, then maximize primary held-out F1, then minimize seed FPR",
+    "seed recall >= 0.98, then maximize seed CV F1, then minimize seed FPR; external held-out is report-only",
   selectedEnsemble,
   ensembleSweep: ensembleSweep,
   selectedEnsembleSeedCV,
