@@ -140,3 +140,11 @@ now pins the dataset repository to `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`,
 so the figures above are retained as observed evidence rather than presented
 as a current-pin CI PASS. A fresh run at the updated pin is required before
 using the benchmark as a completed promotion gate.
+
+
+## Methodology hardening
+
+Model-selection hyperparameters are selected only from frozen seed cross-validation.
+The external held-out dataset is report-only and is not used to choose the
+threshold or ensemble weight. This prevents test-set/holdout leakage and means a
+fresh research run after the correction is the authoritative candidate result.
