@@ -274,6 +274,8 @@ const finalModel = train([
   ...externalTrain,
   ...repeatSeed(SEED_DATASET, selected.factor),
 ]);
+// Threshold selection sees only seed CV + external validation.
+// The external test set is evaluated exactly once after selection. 
 const thresholdSweep = THRESHOLDS.map((threshold) => {
   const folds = [];
 
@@ -301,11 +303,6 @@ const thresholdSweep = THRESHOLDS.map((threshold) => {
     seedCV: aggregateFoldMetrics(folds),
     externalValidation: evaluate(
       externalValidation,
-      (text) => predict(finalModel, text),
-      threshold,
-    ),
-    externalTest: evaluate(
-      externalTest,
       (text) => predict(finalModel, text),
       threshold,
     ),
@@ -337,9 +334,11 @@ const selectedThresholdExternalValidation =
     (text) => predict(finalModel, text),
     selectedThreshold,
   );
-const selectedThresholdExternalTest =
-  thresholdEligible[0]?.externalTest ??
-  evaluate(externalTest, (text) => predict(finalModel, text), selectedThreshold);
+const selectedThresholdExternalTest = evaluate(
+  externalTest,
+  (text) => predict(finalModel, text),
+  selectedThreshold,
+);
 
 function blendProbability(text: string, candidateModel: Model, weight: number): number {
   const v1 = predictText(text).scamProbability;
@@ -347,6 +346,8 @@ function blendProbability(text: string, candidateModel: Model, weight: number): 
   return v1 * (1 - weight) + v11 * weight;
 }
 
+// Ensemble selection sees only seed CV + external validation.
+// The external test set is evaluated exactly once after selection.
 const ensembleSweep = [];
 for (const weight of ENSEMBLE_WEIGHTS) {
   for (const threshold of THRESHOLDS) {
@@ -386,11 +387,6 @@ for (const weight of ENSEMBLE_WEIGHTS) {
         (text) => blendProbability(text, finalModel, weight),
         threshold,
       ),
-      externalTest: evaluate(
-        externalTest,
-        (text) => blendProbability(text, finalModel, weight),
-        threshold,
-      ),
     });
   }
 }
@@ -408,7 +404,16 @@ const ensembleEligible = ensembleSweep
 const selectedEnsemble = ensembleEligible[0] ?? ensembleSweep[0];
 const selectedEnsembleSeedCV = selectedEnsemble.seedCV;
 const selectedEnsembleExternalValidation = selectedEnsemble.externalValidation;
-const selectedEnsembleExternalTest = selectedEnsemble.externalTest;
+const selectedEnsembleExternalTest = evaluate(
+  externalTest,
+  (text) =>
+    blendProbability(
+      text,
+      finalModel,
+      selectedEnsemble.weight,
+    ),
+  selectedEnsemble.threshold,
+);
 
 const compactEntries = [...finalModel.tokenLogOdds.entries()]
   .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
@@ -459,7 +464,7 @@ console.log(JSON.stringify({
     fn: 0,
     tn: 21,
   }),
-  productionExternalHeldOut: evaluate(
+  productionExternalTest: evaluate(
     externalTest,
     (text) => predictText(text).scamProbability,
   ),
