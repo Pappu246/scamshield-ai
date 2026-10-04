@@ -139,6 +139,18 @@ function splitExternal(rows: Row[]) {
     else if (bucket < 8) validation.push(row);
     else test.push(row);
   }
+
+  for (const [name, split] of [
+    ["train", train],
+    ["validation", validation],
+    ["test", test],
+  ] as const) {
+    const labels = new Set(split.map((row) => row.label));
+    if (split.length === 0 || labels.size < 2) {
+      throw new Error(`External ${name} split is degenerate.`);
+    }
+  }
+
   return { train, validation, test };
 }
 
