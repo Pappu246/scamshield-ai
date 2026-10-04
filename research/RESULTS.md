@@ -109,3 +109,13 @@ not as a current-pin CI PASS.
 The v1.1 candidate remains research-only. Independent UCI recall remains the
 main blocker to silent production replacement, and the larger Hindi/Hinglish
 communication benchmark must complete before promotion is reconsidered.
+
+
+## Methodology hardening
+
+The candidate-selection workflow was tightened after review: threshold and
+ensemble configuration selection is based only on frozen seed cross-validation.
+The external held-out slice is now report-only and is never used to choose the
+candidate configuration. Any pre-hardening candidate metrics remain historical
+evidence and are not treated as the authoritative result for promotion. A
+fresh research run is required after this correction.
