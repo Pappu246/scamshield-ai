@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: scamshield-security-${{ github.ref }}
+  group: scamshield-security-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
