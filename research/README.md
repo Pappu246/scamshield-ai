@@ -144,7 +144,8 @@ using the benchmark as a completed promotion gate.
 
 ## Methodology hardening
 
-Model-selection hyperparameters are selected only from frozen seed cross-validation.
-The external held-out dataset is report-only and is not used to choose the
-threshold or ensemble weight. This prevents test-set/holdout leakage and means a
-fresh research run after the correction is the authoritative candidate result.
+External data is split deterministically into train/validation/test. Candidate
+threshold and ensemble configuration selection uses frozen seed CV plus the
+external validation split; the external test split is evaluated only after
+selection and is never used to choose the configuration. This keeps the final
+test evaluation independent while avoiding seed-only overfitting.
