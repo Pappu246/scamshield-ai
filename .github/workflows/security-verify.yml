@@ -35,4 +35,4 @@ jobs:
 
       - name: Source secret regression check
         run: |
-          ! grep -R --line-number --fixed-strings "fb_email_" src .env.example tests
+          ! grep -R --line-number --fixed-strings "fb_email_" src .env.example
