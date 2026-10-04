@@ -130,12 +130,16 @@ function hash(text: string): number {
 
 function splitExternal(rows: Row[]) {
   const train: Row[] = [];
+  const validation: Row[] = [];
   const test: Row[] = [];
   for (const row of rows) {
     const key = row.text.toLowerCase().replace(/\s+/g, " ").trim();
-    (hash(key) % 5 === 0 ? test : train).push(row);
+    const bucket = hash(key) % 10;
+    if (bucket < 6) train.push(row);
+    else if (bucket < 8) validation.push(row);
+    else test.push(row);
   }
-  return { train, test };
+  return { train, validation, test };
 }
 
 function train(rows: Row[]): Model {
@@ -226,7 +230,11 @@ function aggregateFoldMetrics(metrics: ReturnType<typeof computeMetrics>[]) {
 }
 
 const { rows: external, revision } = await loadExternal();
-const { train: externalTrain, test: externalTest } = splitExternal(external);
+const {
+  train: externalTrain,
+  validation: externalValidation,
+  test: externalTest,
+} = splitExternal(external);
 const scams = SEED_DATASET.filter((row) => row.label === "scam");
 const legits = SEED_DATASET.filter((row) => row.label === "legit");
 
@@ -291,7 +299,12 @@ const thresholdSweep = THRESHOLDS.map((threshold) => {
   return {
     threshold,
     seedCV: aggregateFoldMetrics(folds),
-    externalHeldOut: evaluate(
+    externalValidation: evaluate(
+      externalValidation,
+      (text) => predict(finalModel, text),
+      threshold,
+    ),
+    externalTest: evaluate(
       externalTest,
       (text) => predict(finalModel, text),
       threshold,
@@ -303,8 +316,10 @@ const thresholdEligible = thresholdSweep
   .filter((entry) => entry.seedCV.recall >= 0.98)
   .sort(
     (a, b) =>
-      b.seedCV.f1 - a.seedCV.f1 ||
-      a.seedCV.falsePositiveRate - b.seedCV.falsePositiveRate,
+      b.externalValidation.f1 - a.externalValidation.f1 ||
+      a.externalValidation.falsePositiveRate -
+        b.externalValidation.falsePositiveRate ||
+      b.seedCV.f1 - a.seedCV.f1,
   );
 
 const selectedThreshold = thresholdEligible[0]?.threshold ?? 0.5;
@@ -315,8 +330,15 @@ const selectedThresholdSeedCV =
     fn: 1,
     tn: 22,
   });
-const selectedThresholdExternalHeldOut =
-  thresholdEligible[0]?.externalHeldOut ??
+const selectedThresholdExternalValidation =
+  thresholdEligible[0]?.externalValidation ??
+  evaluate(
+    externalValidation,
+    (text) => predict(finalModel, text),
+    selectedThreshold,
+  );
+const selectedThresholdExternalTest =
+  thresholdEligible[0]?.externalTest ??
   evaluate(externalTest, (text) => predict(finalModel, text), selectedThreshold);
 
 function blendProbability(text: string, candidateModel: Model, weight: number): number {
@@ -359,7 +381,12 @@ for (const weight of ENSEMBLE_WEIGHTS) {
       weight,
       threshold,
       seedCV: aggregateFoldMetrics(seedFolds),
-      externalHeldOut: evaluate(
+      externalValidation: evaluate(
+        externalValidation,
+        (text) => blendProbability(text, finalModel, weight),
+        threshold,
+      ),
+      externalTest: evaluate(
         externalTest,
         (text) => blendProbability(text, finalModel, weight),
         threshold,
@@ -372,13 +399,16 @@ const ensembleEligible = ensembleSweep
   .filter((entry) => entry.seedCV.recall >= 0.98)
   .sort(
     (a, b) =>
-      b.seedCV.f1 - a.seedCV.f1 ||
-      a.seedCV.falsePositiveRate - b.seedCV.falsePositiveRate,
+      b.externalValidation.f1 - a.externalValidation.f1 ||
+      a.externalValidation.falsePositiveRate -
+        b.externalValidation.falsePositiveRate ||
+      b.seedCV.f1 - a.seedCV.f1,
   );
 
 const selectedEnsemble = ensembleEligible[0] ?? ensembleSweep[0];
 const selectedEnsembleSeedCV = selectedEnsemble.seedCV;
-const selectedEnsembleExternalHeldOut = selectedEnsemble.externalHeldOut;
+const selectedEnsembleExternalValidation = selectedEnsemble.externalValidation;
+const selectedEnsembleExternalTest = selectedEnsemble.externalTest;
 
 const compactEntries = [...finalModel.tokenLogOdds.entries()]
   .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
@@ -403,23 +433,26 @@ console.log(JSON.stringify({
   dataset: DATASET,
   revision,
   externalTrainRows: externalTrain.length,
-  externalHeldOutRows: externalTest.length,
+  externalValidationRows: externalValidation.length,
+  externalTestRows: externalTest.length,
   seedRows: SEED_DATASET.length,
   sweep,
   selectionRule:
-    "factor: recall >= 0.98, then minimize seed FPR, then maximize F1; threshold: seed recall >= 0.98, then maximize seed CV F1, then minimize seed FPR; external held-out is report-only",
+    "factor: frozen seed-CV recall >= 0.98, then minimize seed FPR, then maximize F1; threshold: seed-CV recall >= 0.98, then maximize external validation F1, then minimize validation FPR; external test is report-only",
   selectedFactor: selected.factor,
   selectedSeedCV: selected.seedCV,
   thresholdSweep,
   selectedThreshold,
   selectedThresholdSeedCV,
-  selectedThresholdExternalHeldOut,
+  selectedThresholdExternalValidation,
+  selectedThresholdExternalTest,
   ensembleSelectionRule:
-    "seed recall >= 0.98, then maximize seed CV F1, then minimize seed FPR; external held-out is report-only",
+    "seed-CV recall >= 0.98, then maximize external validation F1, then minimize validation FPR; external test is report-only",
   selectedEnsemble,
   ensembleSweep: ensembleSweep,
   selectedEnsembleSeedCV,
-  selectedEnsembleExternalHeldOut,
+  selectedEnsembleExternalValidation,
+  selectedEnsembleExternalTest,
   productionSeedCV: computeMetrics({
     tp: 53,
     fp: 11,
