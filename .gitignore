@@ -4,5 +4,4 @@
 .env.local
 node_modules
 dist
-src/convex/_generated
 *.zip
