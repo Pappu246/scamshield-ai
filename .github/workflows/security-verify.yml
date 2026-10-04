@@ -1,9 +1,6 @@
 name: ScamShield security verification
 
 on:
-  push:
-    branches:
-      - security/remove-hardcoded-email-api-key
   pull_request:
     branches:
       - main
