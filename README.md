@@ -28,7 +28,7 @@ bun run test         # 70 unit/integration tests (vitest)
 bun tsc -b --noEmit  # typecheck
 ```
 
-No external API keys are required — the entire engine runs locally with no network calls.
+The analyzer requires no external AI/reputation API keys and runs locally with no analysis-time network calls. Email OTP delivery uses the server-side `VLY_EMAIL_API_KEY` environment variable.
 
 ## Architecture at a glance
 
