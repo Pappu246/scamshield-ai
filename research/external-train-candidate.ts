@@ -14,7 +14,7 @@ import {
   predictText,
   type ConfusionMatrix,
 } from "../src/lib/analyzer/classifier";
-import { SEED_DATASET, type LabeledExample } from "../src/lib/analyzer/dataset";
+import { SEED_DATASET } from "../src/lib/analyzer/dataset";
 import { tokenize } from "../src/lib/analyzer/classifier";
 
 const DATASET = "anmolshrivastav/scam-ham-india";
