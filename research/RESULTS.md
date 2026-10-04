@@ -113,9 +113,9 @@ communication benchmark must complete before promotion is reconsidered.
 
 ## Methodology hardening
 
-The candidate-selection workflow was tightened after review: threshold and
-ensemble configuration selection is based only on frozen seed cross-validation.
-The external held-out slice is now report-only and is never used to choose the
-candidate configuration. Any pre-hardening candidate metrics remain historical
-evidence and are not treated as the authoritative result for promotion. A
-fresh research run is required after this correction.
+External data is now split deterministically into train/validation/test. Candidate
+threshold and ensemble configuration selection uses frozen seed cross-validation
+and the external validation split only. The external test split is evaluated
+only after selection and is report-only. Earlier 80/20 holdout results remain
+historical evidence and are not the authoritative post-correction result.
+A fresh research run after this correction is required before promotion.
