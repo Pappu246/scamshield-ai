@@ -1,9 +1,6 @@
 name: ScamShield v1.1 branch CI
 
 on:
-  push:
-    branches:
-      - v1-1-model-improvement
   pull_request:
     branches:
       - main
