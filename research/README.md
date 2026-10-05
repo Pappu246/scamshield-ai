@@ -40,30 +40,30 @@ production analyzer and is retained as a reproducible rejected candidate.
 
 ## Latest measured candidate results
 
-The latest successful end-to-end research run selected:
+The current authoritative end-to-end research run (`37223619398`) selected:
 
 - seed oversampling factor: 32x
 - classification threshold: 0.90
+- ensemble weight: 1
 - candidate model version: nb-scam-v1.1-external-seed-oversampled
 - dataset revision: 09afd479908c443e46be2629185ba8cd1de8abb8
 
-At that threshold, the candidate measured:
+Under the corrected train/validation/test methodology, selection used frozen seed
+CV plus external validation, while external test data was report-only. The selected
+candidate measured:
 
-- frozen 85-example seed 5-fold CV: 89.41% accuracy, 86.67% precision,
-  98.11% recall, 92.04% F1, 25.00% FPR
-- primary held-out slice from the same external dataset: 97.41% accuracy,
-  98.17% precision, 95.27% recall, 96.70% F1, 1.18% FPR
-- independent UCI SMS Spam Collection benchmark: 90.71% accuracy, 67.48%
-  precision, 59.17% recall, 63.05% F1, 4.41% FPR
+- selected seed CV: 91.76% accuracy, 89.66% precision, 98.11% recall,
+  93.69% F1, 18.75% FPR
+- external validation: 98.52% accuracy, 98.95% precision, 97.41% recall,
+  98.17% F1, 0.71% FPR
+- external test: 98.33% accuracy, 96.13% precision, 99.33% recall,
+  97.70% F1, 2.24% FPR
+- independent UCI SMS Spam Collection: 89.49% accuracy, 61.39% precision,
+  58.10% recall, 59.70% F1, 5.66% FPR
 
-The UCI benchmark contains generic spam/ham SMS rather than a pure fraud corpus,
-so it is an independent spam benchmark, not a real-world scam-detection
-accuracy claim.
-
-The primary held-out slice comes from the same external dataset distribution
-used to train the candidate, so it can be optimistic. The independent UCI
-recall result is not high enough to justify silently replacing the production
-model.
+The UCI benchmark is a generic English SMS spam/ham benchmark, not a real-world
+fraud-detection accuracy claim. The weaker independent recall remains a blocker
+to production replacement.
 
 ## Promotion criteria
 
@@ -123,23 +123,19 @@ The workflow pins the corpus file to revision `8e80dd576610feede6a4c456f95fbd6b8
 
 ## Larger independent Indian communication benchmark — observed result
 
-A prior successful end-to-end Actions run (`37148264682`) loaded all 10,000 rows
-from `ysangam/Indian_Cyber_Scam_PhoneCall_Hinglish_Dataset` and measured the
-following external communication benchmark:
+The current authoritative run (`37223619398`) loaded all 10,000 rows from the
+pinned dataset revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`:
 
 | Metric | Production v1 | Candidate v1.1 |
 |---|---:|---:|
-| Accuracy | 85.09% | 86.62% |
-| Precision | 80.62% | 85.71% |
-| Recall | 92.38% | 87.90% |
-| F1 | 86.10% | 86.79% |
-| False-positive rate | 22.20% | 14.66% |
+| Accuracy | 85.09% | 82.73% |
+| Precision | 80.62% | 82.03% |
+| Recall | 92.38% | 83.82% |
+| F1 | 86.10% | 82.92% |
+| False-positive rate | 22.20% | 18.36% |
 
-The successful run used an earlier data-file revision (`c1baf5a`). The branch
-now pins the dataset repository to `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`,
-so the figures above are retained as observed evidence rather than presented
-as a current-pin CI PASS. A fresh run at the updated pin is required before
-using the benchmark as a completed promotion gate.
+The candidate reduces false-positive rate but loses substantial recall versus the
+frozen production model. This benchmark therefore does not support promotion.
 
 
 ## Methodology hardening
