@@ -87,35 +87,61 @@ The corpus includes call/chat/SMS-style communication, so any result will be
 reported as a communication benchmark rather than a direct real-world
 SMS-fraud accuracy estimate. The source file is pinned to revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`.
 
-A successful end-to-end Actions run (`37148264682`) loaded all 10,000 rows
-and measured:
+A current authoritative end-to-end Actions run (`37223619398`) loaded all 10,000 rows
+from the pinned dataset revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c` and measured:
 
 | Metric | Production v1 | Candidate v1.1 |
 |---|---:|---:|
-| Accuracy | 85.09% | 86.62% |
-| Precision | 80.62% | 85.71% |
-| Recall | 92.38% | 87.90% |
-| F1 | 86.10% | 86.79% |
-| False-positive rate | 22.20% | 14.66% |
+| Accuracy | 85.09% | 82.73% |
+| Precision | 80.62% | 82.03% |
+| Recall | 92.38% | 83.82% |
+| F1 | 86.10% | 82.92% |
+| False-positive rate | 22.20% | 18.36% |
 
-That successful run used an earlier data-file revision (`c1baf5a`). The
-research branch has since moved to the current dataset repository revision
-`8e80dd576610feede6a4c456f95fbd6b8ac13c2c`; a fresh run at that pin is still
-queued. Therefore these figures are recorded as observed benchmark evidence,
-not as a current-pin CI PASS.
+The current-pin result is authoritative for this benchmark. It improves false-positive
+rate but has materially lower recall than production v1, so it does not support promotion.
+
+## Post-correction authoritative research run
+
+The current successful run (`37223619398`) completed the full research workflow,
+including seed/ensemble selection, UCI, multilingual, and 10,000-row Indian
+communication evaluation.
+
+The selected configuration is:
+- seed oversampling factor: **32x**
+- classification threshold: **0.90**
+- ensemble weight: **1**
+- model: `nb-scam-v1.1-external-seed-oversampled`
+
+### Corrected external train/validation/test selection
+
+Threshold selection used frozen seed CV plus external validation; the external test
+split was report-only.
+
+| Metric | Seed CV | External validation | External test |
+|---|---:|---:|---:|
+| Accuracy | 91.76% | 98.52% | 98.33% |
+| Precision | 89.66% | 98.95% | 96.13% |
+| Recall | 98.11% | 97.41% | 99.33% |
+| F1 | 93.69% | 98.17% | 97.70% |
+| False-positive rate | 18.75% | 0.71% | 2.24% |
+
+The external test result was computed only after configuration selection.
 
 ## Current gate
 
-The v1.1 candidate remains research-only. Independent UCI recall remains the
-main blocker to silent production replacement, and the larger Hindi/Hinglish
-communication benchmark must complete before promotion is reconsidered.
+The v1.1 candidate remains **research-only**. Independent evaluation still does not
+justify production replacement:
+- UCI SMS benchmark recall: **58.10%**
+- 120-row multilingual smoke benchmark overall recall: **85.00%**
+- 10,000-row Indian communication benchmark recall: **83.82%**, versus **92.38%** for production v1
 
+These are benchmark results, not real-world fraud-detection accuracy claims.
 
 ## Methodology hardening
 
-External data is now split deterministically into train/validation/test. Candidate
-threshold and ensemble configuration selection uses frozen seed cross-validation
-and the external validation split only. The external test split is evaluated
-only after selection and is report-only. Earlier 80/20 holdout results remain
-historical evidence and are not the authoritative post-correction result.
-A fresh research run after this correction is required before promotion.
+External data is split deterministically into train/validation/test. Candidate threshold and
+ensemble configuration selection uses frozen seed cross-validation plus the external validation
+split only. The external test split is evaluated only after selection and is report-only.
+Earlier 80/20 holdout-selection results remain historical evidence and are not the authoritative
+post-correction result.
