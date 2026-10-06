@@ -145,3 +145,13 @@ threshold and ensemble configuration selection uses frozen seed CV plus the
 external validation split; the external test split is evaluated only after
 selection and is never used to choose the configuration. This keeps the final
 test evaluation independent while avoiding seed-only overfitting.
+## Current production/research gate snapshot
+
+This research branch is intentionally kept separate from production. As of the latest gate review:
+
+- production `main`: `4c7d79cf3fbba857ba73714daae068f8b4d1a516`
+- production deployment: `dpl_92rSEow71i5YHVPXifDnuRX5kkDe`
+- the v1.1 candidate is not approved for production promotion because independent benchmarks remain materially weaker than the frozen production model
+- the research/security gates are re-evaluated from the exact current commit; stale historical workflow runs must not be treated as fresh verification
+
+A research-only documentation change does not alter the production scoring path or model artifact.
