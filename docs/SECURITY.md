@@ -32,7 +32,10 @@ Fixed-window counter in the `rateLimits` table: **20 analyses / minute / user / 
 
 ### Data minimization & retention
 - Raw input stored **truncated to 2,000 characters** (`inputPreview`); the full structured result (evidence quotes, findings) is stored for traceability of that analysis.
-- No third-party analytics, no external calls during analysis, no secrets in client code (the app requires none — all inference is local).
+- No third-party analytics and no external calls during analysis/inference. The only external credential used by the app is the server-side email OTP provider key described above; it is not exposed to the client.
+- The email OTP provider credential is read only from the server-side `VLY_EMAIL_API_KEY` environment variable.
+- The provider credential must never be placed in source, browser-exposed variables, or `.env` files committed to the repository.
+- Historical exposure requires provider-side revocation/rotation; deleting the source value alone does not invalidate the old credential.
 - Feedback comments truncated to 500 chars.
 
 ### Error handling
