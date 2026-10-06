@@ -1,0 +1,45 @@
+name: ScamShield Vercel fix verification
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/vercel-fix-verify.yml"
+      - "src/convex/_generated/**"
+      - ".gitignore"
+      - "package.json"
+      - "bun.lock"
+      - "src/**"
+      - "tests/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scamshield-vercel-fix-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.2"
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Regression tests
+        run: bun run test
+
+      - name: Test typecheck
+        run: bun run typecheck:tests
+
+      - name: Production build
+        run: bun run build
