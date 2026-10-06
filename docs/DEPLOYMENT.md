@@ -13,13 +13,14 @@ bun run test               # vitest suite (70 tests)
 ## Environment variables
 - `VITE_CONVEX_URL` — provided by the platform; used by `src/main.tsx` for the Convex client.
 - `CONVEX_SITE_URL` — provided by the platform; used by Convex Auth.
-- **No external API keys are required.** All analysis is local; nothing to leak.
+- `VLY_EMAIL_API_KEY` — server-side email OTP provider credential; set it in the Convex/Vercel environment and never commit the value. The analyzer itself still performs local inference without external AI APIs.
 
 ## Production checklist
 1. `bunx convex dev --once` succeeds (schema: analyses, feedback, rateLimits + auth tables).
 2. `bun tsc -b --noEmit` clean.
 3. `bun run test` green.
-4. Sign-in flow: `/auth` → email OTP (or guest) → redirect back to `/analyze`.
+4. `VLY_EMAIL_API_KEY` is configured in the server/Convex environment before testing email OTP.
+5. Sign-in flow: `/auth` → email OTP (or guest) → redirect back to `/analyze`.
 5. Rate limiting active (20/min/user) — visible as error toast when exceeded.
 6. History private per account — verify another account cannot open `/result/<id>`.
 
