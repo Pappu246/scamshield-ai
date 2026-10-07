@@ -155,3 +155,7 @@ This research branch is intentionally kept separate from production. As of the l
 - the research/security gates are re-evaluated from the exact current commit; stale historical workflow runs must not be treated as fresh verification
 
 A research-only documentation change does not alter the production scoring path or model artifact.
+
+## Current branch alignment
+
+The research branch is aligned against the current production `main` base commit `4c7d79cf3fbba857ba73714daae068f8b4d1a516`. Any promotion decision remains research-only and must use verification runs from the current branch head.
