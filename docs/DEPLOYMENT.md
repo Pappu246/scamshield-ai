@@ -11,17 +11,18 @@ bun run test               # vitest suite (70 tests)
 ```
 
 ## Environment variables
-- `VITE_CONVEX_URL` — provided by the platform; used by `src/main.tsx` for the Convex client.
+- `VITE_CONVEX_URL` — provided by the platform; used by `src/main.tsx` for the Convex client. This is browser-visible and must not contain secrets.
 - `CONVEX_SITE_URL` — provided by the platform; used by Convex Auth.
-- **No external API keys are required.** All analysis is local; nothing to leak.
+- `VLY_EMAIL_API_KEY` — server-side email OTP provider credential read by `src/convex/auth/emailOtp.ts`. Configure it in the **Convex deployment environment** (Convex Dashboard → Settings → Environment Variables, or the Convex CLI for the intended deployment). A Vercel frontend project variable alone does not provision a Convex function's runtime environment. Never commit the value or put it in a `VITE_` variable.
 
 ## Production checklist
 1. `bunx convex dev --once` succeeds (schema: analyses, feedback, rateLimits + auth tables).
 2. `bun tsc -b --noEmit` clean.
 3. `bun run test` green.
-4. Sign-in flow: `/auth` → email OTP (or guest) → redirect back to `/analyze`.
-5. Rate limiting active (20/min/user) — visible as error toast when exceeded.
-6. History private per account — verify another account cannot open `/result/<id>`.
+4. `VLY_EMAIL_API_KEY` is set in the correct Convex deployment environment and verified without printing its value before testing email OTP.
+5. Sign-in flow: `/auth` → email OTP (or guest) → redirect back to `/analyze`.
+6. Rate limiting active (20/min/user) — visible as error toast when exceeded.
+7. History private per account — verify another account cannot open `/result/<id>`.
 
 ## Scaling notes (v2+)
 - Add OCR service behind the `image` analysis kind.
