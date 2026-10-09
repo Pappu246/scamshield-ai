@@ -28,7 +28,7 @@ bun run test         # 70 unit/integration tests (vitest)
 bun tsc -b --noEmit  # typecheck
 ```
 
-The analyzer requires no external AI/reputation API keys and runs locally with no analysis-time network calls. Email OTP delivery uses the server-side `VLY_EMAIL_API_KEY` environment variable.
+The analyzer requires no external AI/reputation API keys and runs locally with no analysis-time network calls. Email OTP delivery reads `VLY_EMAIL_API_KEY` only from the server-side Convex deployment environment; a Vercel frontend variable alone is not sufficient. Never place this key in a `VITE_` variable or commit it. See [deployment instructions](docs/DEPLOYMENT.md).
 
 ## Architecture at a glance
 
