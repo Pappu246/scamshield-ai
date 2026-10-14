@@ -40,14 +40,14 @@ training, so it may be optimistic.
 
 | Metric | Candidate v1.1 |
 |---|---:|
-| Precision | 67.48% |
-| Recall | 59.17% |
-| F1 | 63.05% |
-| Accuracy | 90.71% |
-| False-positive rate | 4.41% |
+| Precision | 61.39% |
+| Recall | 58.10% |
+| F1 | 59.70% |
+| Accuracy | 89.49% |
+| False-positive rate | 5.66% |
 
 This is a generic English SMS spam/ham benchmark, not a dedicated fraud corpus.
-The 59.17% recall is a meaningful limitation and is one reason the candidate
+The 58.10% recall is a meaningful limitation and is one reason the candidate
 has not been wired into the production analyzer.
 
 ## Rejected character n-gram experiment
@@ -87,7 +87,7 @@ The corpus includes call/chat/SMS-style communication, so any result will be
 reported as a communication benchmark rather than a direct real-world
 SMS-fraud accuracy estimate. The source file is pinned to revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`.
 
-A current authoritative end-to-end Actions run (`37223619398`) loaded all 10,000 rows
+A current authoritative end-to-end Actions run (`37573678543`) loaded all 10,000 rows
 from the pinned dataset revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c` and measured:
 
 | Metric | Production v1 | Candidate v1.1 |
@@ -103,7 +103,7 @@ rate but has materially lower recall than production v1, so it does not support 
 
 ## Post-correction authoritative research run
 
-The current successful run (`37223619398`) completed the full research workflow,
+The current successful run (`37573678543`) completed the full research workflow,
 including seed/ensemble selection, UCI, multilingual, and 10,000-row Indian
 communication evaluation.
 
