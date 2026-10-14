@@ -63,19 +63,19 @@ file revision `7019a60`, 120 rows, Apache-2.0.
 
 | Metric | Production v1 | Candidate v1.1 |
 |---|---:|---:|
-| Accuracy | 86.67% | 88.33% |
-| Precision | 78.95% | 91.07% |
+| Accuracy | 86.67% | 82.50% |
+| Precision | 78.95% | 80.95% |
 | Recall | 100.00% | 85.00% |
-| F1 | 88.24% | 87.93% |
-| False-positive rate | 26.67% | 8.33% |
+| F1 | 88.24% | 82.93% |
+| False-positive rate | 26.67% | 20.00% |
 
 Candidate per-language recall:
 
 | Language | Rows | Recall | False-positive rate |
 |---|---:|---:|---:|
 | English | 41 | 90.91% | 5.26% |
-| Hindi | 37 | 71.43% | 0.00% |
-| Hinglish | 42 | 94.12% | 16.00% |
+| Hindi | 37 | 71.43% | 25.00% |
+| Hinglish | 42 | 94.12% | 28.00% |
 
 This is a small curated smoke benchmark. It supports further multilingual
 testing but is not sufficient by itself to replace the production model.
@@ -87,7 +87,7 @@ The corpus includes call/chat/SMS-style communication, so any result will be
 reported as a communication benchmark rather than a direct real-world
 SMS-fraud accuracy estimate. The source file is pinned to revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`.
 
-A current authoritative end-to-end Actions run (`37573678543`) loaded all 10,000 rows
+A current authoritative end-to-end Actions run (`38611451085`) loaded all 10,000 rows
 from the pinned dataset revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c` and measured:
 
 | Metric | Production v1 | Candidate v1.1 |
@@ -103,7 +103,7 @@ rate but has materially lower recall than production v1, so it does not support 
 
 ## Post-correction authoritative research run
 
-The current successful run (`37573678543`) completed the full research workflow,
+The current successful run (`38611451085`) completed the full research workflow,
 including seed/ensemble selection, UCI, multilingual, and 10,000-row Indian
 communication evaluation.
 
