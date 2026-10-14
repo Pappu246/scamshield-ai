@@ -40,7 +40,7 @@ production analyzer and is retained as a reproducible rejected candidate.
 
 ## Latest measured candidate results
 
-The current authoritative end-to-end research run (`37223619398`) selected:
+The current authoritative end-to-end research run (`37573678543`) selected:
 
 - seed oversampling factor: 32x
 - classification threshold: 0.90
@@ -123,7 +123,7 @@ The workflow pins the corpus file to revision `8e80dd576610feede6a4c456f95fbd6b8
 
 ## Larger independent Indian communication benchmark — observed result
 
-The current authoritative run (`37223619398`) loaded all 10,000 rows from the
+The current authoritative run (`37573678543`) loaded all 10,000 rows from the
 pinned dataset revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`:
 
 | Metric | Production v1 | Candidate v1.1 |
