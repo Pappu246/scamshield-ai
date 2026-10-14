@@ -40,7 +40,7 @@ production analyzer and is retained as a reproducible rejected candidate.
 
 ## Latest measured candidate results
 
-The current authoritative end-to-end research run (`37573678543`) selected:
+The current full research run (`38611451085`) selected:
 
 - seed oversampling factor: 32x
 - classification threshold: 0.90
@@ -98,8 +98,8 @@ Measured on the 120-row smoke set:
 
 - production v1: 86.67% accuracy, 78.95% precision, 100.00% recall, 88.24% F1,
   26.67% false-positive rate
-- candidate v1.1: 88.33% accuracy, 91.07% precision, 85.00% recall, 87.93% F1,
-  8.33% false-positive rate
+- candidate v1.1: 82.50% accuracy, 80.95% precision, 85.00% recall, 82.93% F1,
+  20.00% false-positive rate
 
 Per-language candidate recall is 90.91% on English, 71.43% on Hindi, and
 94.12% on Hinglish. The smoke set is small and curated, so these numbers are
@@ -123,7 +123,7 @@ The workflow pins the corpus file to revision `8e80dd576610feede6a4c456f95fbd6b8
 
 ## Larger independent Indian communication benchmark — observed result
 
-The current authoritative run (`37573678543`) loaded all 10,000 rows from the
+The current full research run (`38611451085`) loaded all 10,000 rows from the
 pinned dataset revision `8e80dd576610feede6a4c456f95fbd6b8ac13c2c`:
 
 | Metric | Production v1 | Candidate v1.1 |
